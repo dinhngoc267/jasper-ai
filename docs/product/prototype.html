@@ -6,16 +6,16 @@
 <title>Jasper AI · CRM Prototype</title>
 <style>
   :root {
-    --ink: #1d1d1f;
-    --ink-2: #6e6e73;
-    --ink-3: #a1a1a6;
-    --accent: #0071e3;
-    --accent-soft: #eaf3fd;
+    --ink: #0B1426;
+    --ink-2: #64748B;
+    --ink-3: #94A3B8;
+    --accent: #2563EB;
+    --accent-soft: #DBEAFE;
     --bg: #ffffff;
     --bg-soft: #f5f5f7;
     --bg-softer: #fafafa;
-    --rule: #e5e5ea;
-    --rule-2: #d2d2d7;
+    --rule: #E2E8F0;
+    --rule-2: #CBD5E1;
     --green: #1f8a4c;
     --green-soft: #e7f5ec;
     --red: #d0342c;
@@ -190,10 +190,12 @@
     padding: 12px 14px; cursor: pointer; transition: box-shadow .12s, border-color .12s;
   }
   .card:hover { border-color: var(--rule-2); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .card.stale { border-left: 3px solid var(--amber); }
   .card .who { font-weight: 600; font-size: 13.5px; }
   .card .co { color: var(--ink-2); font-size: 12.5px; margin-top: 1px; }
   .card .meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
   .card .ago { font-size: 11.5px; color: var(--ink-3); }
+  .stale-flag { margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--amber); }
   .badge {
     display: inline-block; font-size: 11px; font-weight: 600; border-radius: 100px; padding: 2px 9px; white-space: nowrap;
   }
@@ -264,6 +266,11 @@
   .stage-chip.current { background: var(--ink); color: #fff; border-color: var(--ink); }
   .stage-chip.won.current { background: var(--green); border-color: var(--green); }
   .stage-chip.lost.current { background: var(--red); border-color: var(--red); }
+  .stage-note {
+    display: block; width: 100%; margin-top: 10px; min-height: 52px; resize: vertical;
+    border: 1px solid var(--rule-2); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; outline: none;
+  }
+  .stage-note:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .timeline { position: relative; padding-left: 18px; }
   .timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 6px; width: 1.5px; background: var(--rule); }
   .tl-item { position: relative; padding-bottom: 14px; font-size: 12.5px; }
@@ -288,6 +295,24 @@
   .btn-small { background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 600; padding: 8px 14px; border-radius: 8px; }
   .btn-small:hover { opacity: .88; }
   .back-link { font-size: 12.5px; color: var(--accent); font-weight: 600; margin-bottom: 14px; display: inline-block; }
+
+  /* ---------- mobile: sidebar becomes a top icon bar, board shows ~1 column ---------- */
+  @media (max-width: 640px) {
+    #admin.visible { flex-direction: column; }
+    .sidebar {
+      width: 100%; flex-direction: row; align-items: center; gap: 2px;
+      padding: 8px 8px; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--rule);
+    }
+    .sidebar .brand { display: none; }
+    .nav-item {
+      flex-direction: column; gap: 3px; padding: 6px 12px; font-size: 10.5px;
+      white-space: nowrap; margin-bottom: 0;
+    }
+    .nav-item svg { width: 17px; height: 17px; }
+    .nav-item .count { margin-left: 0; }
+    .col { width: 84vw; }
+    .drawer { width: 100vw; max-width: 100vw; }
+  }
 
   /* toast */
   .toast {
@@ -632,12 +657,28 @@ function renderContent() {
   else c.innerHTML = newsletterHTML();
 }
 
+/** Time this contact was last touched — its latest activity, or when it came in if untouched. */
+function lastTouched(ct) {
+  const acts = state.activity.filter(a => a.contact_id === ct.id);
+  if (!acts.length) return ct.created_at;
+  return Math.max(...acts.map(a => a.created_at));
+}
+
+/** Open leads with no movement in 48h+ are flagged — this is the "nothing falls through
+ *  the cracks" promise made visible, not just a data model. Closed leads (won/lost) never flag. */
+function isStale(ct) {
+  if (["won", "lost"].includes(ct.status)) return false;
+  return (NOW - lastTouched(ct)) > 48 * 3600e3;
+}
+
 function cardHTML(ct) {
   const p = person(ct.person_id);
-  return `<div class="card" onclick="openContact(${ct.id})">
+  const stale = isStale(ct);
+  return `<div class="card ${stale ? "stale" : ""}" onclick="openContact(${ct.id})">
     <div class="who">${esc(p.name)}</div>
     <div class="co">${esc(p.company || p.email)}</div>
     <div class="meta"><span class="badge ${TYPE_CLASS[ct.type]}">${TYPE_LABEL[ct.type]}</span><span class="ago">${ago(ct.created_at)}</span></div>
+    ${stale ? `<div class="stale-flag">⏳ Needs follow-up</div>` : ""}
   </div>`;
 }
 
@@ -725,6 +766,7 @@ window.openContact = function(id) {
         <h4>Stage</h4>
         <div class="stage-row">${STAGES.map(s =>
           `<button class="stage-chip ${s} ${s===ct.status?"current":""}" onclick="moveStage(${ct.id}, '${s}')">${STAGE_LABEL[s]}</button>`).join("")}</div>
+        <textarea id="stageNote" class="stage-note" placeholder="Optional note about this change — added automatically if you click a stage above"></textarea>
       </div>
       <div class="sect">
         <h4>Inquiry</h4>
@@ -758,7 +800,8 @@ window.openContact = function(id) {
 window.moveStage = function(contactId, to) {
   const ct = state.contacts.find(c => c.id === contactId);
   if (ct.status === to) return;
-  const note = prompt(`Moving to “${STAGE_LABEL[to]}”. Add a note? (optional)`) ?? "";
+  const noteField = $("#stageNote");
+  const note = noteField ? noteField.value.trim() : "";
   state.activity.push({ id: ++seq, contact_id: ct.id, person_id: ct.person_id, from_status: ct.status, to_status: to, actor: "jasper", note, created_at: Date.now() });
   ct.status = to;
   toast(`${person(ct.person_id).name} → ${STAGE_LABEL[to]}`);

@@ -1,4 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import type { ActivityLogRow, LeadRow } from "@/lib/leads";
+import { LeadsBoard } from "./leads-board";
 
 // Render on every request — never at build time (there is no database during
 // `next build`). This keeps the build green without a database connection.
@@ -8,56 +10,6 @@ export const metadata = {
   title: "Leads — Jasper AI Admin",
 };
 
-/** Shape of the custom attributes stored on people.attributes (jsonb). */
-type PersonAttributes = {
-  how_they_heard?: string;
-  company_size?: string;
-  estimated_budget?: string;
-};
-
-/** A contact row joined to its person, as returned by the query below. */
-type LeadRow = {
-  id: string;
-  type: string;
-  message: string | null;
-  status: string;
-  created_at: string;
-  people: {
-    name: string | null;
-    email: string;
-    company: string | null;
-    attributes: PersonAttributes | null;
-  } | null;
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  ai_development_project: "AI Development Project",
-  ai_consulting: "AI Consulting",
-  ongoing_support: "Ongoing Support",
-  general_inquiry: "General Inquiry",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new_lead: "New lead",
-  contacted: "Contacted",
-  discovery_call: "Discovery call",
-  proposal: "Proposal",
-  won: "Won",
-  lost: "Lost",
-};
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 /** Fetch leads newest-first. Returns null (not throws) if the DB is unreachable. */
 async function fetchLeads(): Promise<LeadRow[] | null> {
   try {
@@ -65,7 +17,7 @@ async function fetchLeads(): Promise<LeadRow[] | null> {
     const { data, error } = await supabase
       .from("contacts")
       .select(
-        "id, type, message, status, created_at, people ( name, email, company, attributes )"
+        "id, person_id, type, subject, message, source, status, created_at, people ( id, name, email, company, attributes, created_at )"
       )
       .order("created_at", { ascending: false });
 
@@ -77,11 +29,37 @@ async function fetchLeads(): Promise<LeadRow[] | null> {
   }
 }
 
+/**
+ * Fetch the status-change audit trail. Returns `[]` (not null) on failure —
+ * as of this writing the operator has not yet run migration 0002, so
+ * `activity_log` doesn't exist in production. That must never block the
+ * board itself: every lead just shows "No status changes yet" and staleness
+ * falls back to the contact's `created_at`.
+ */
+async function fetchActivityLog(): Promise<ActivityLogRow[]> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("activity_log")
+      .select("id, contact_id, from_status, to_status, actor, note, created_at")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return (data as unknown as ActivityLogRow[]) ?? [];
+  } catch (err) {
+    console.error(
+      "[admin] activity_log not available yet (expected until migration 0002 runs):",
+      err
+    );
+    return [];
+  }
+}
+
 export default async function AdminLeadsPage() {
-  const leads = await fetchLeads();
+  const [leads, activity] = await Promise.all([fetchLeads(), fetchActivityLog()]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
+    <main className="mx-auto w-full max-w-[1600px] px-6 py-16 sm:py-20">
       <header className="mb-10">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-[var(--gray-2)]">
           Jasper AI · Admin
@@ -90,19 +68,16 @@ export default async function AdminLeadsPage() {
           Leads
         </h1>
         <p className="mt-2 text-[var(--gray-2)]">
-          Every inquiry from the site, newest first.
+          Every inquiry from the site, worked from first contact to won or
+          lost. Click a card to see the full record and move it to a new
+          stage.
         </p>
       </header>
 
       {leads === null || leads.length === 0 ? (
         <EmptyState connected={leads !== null} />
       ) : (
-        <>
-          <p className="mb-4 text-sm text-[var(--gray-2)]">
-            {leads.length} {leads.length === 1 ? "lead" : "leads"}
-          </p>
-          <LeadsTable leads={leads} />
-        </>
+        <LeadsBoard leads={leads} activity={activity} />
       )}
     </main>
   );
@@ -120,94 +95,5 @@ function EmptyState({ connected }: { connected: boolean }) {
           : "The database isn't reachable yet. Run the migration in Supabase and set the environment variables, then refresh."}
       </p>
     </div>
-  );
-}
-
-function LeadsTable({ leads }: { leads: LeadRow[] }) {
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--rule)] bg-[var(--paper)]">
-      <table className="w-full min-w-[880px] border-collapse text-left text-sm">
-        <thead>
-          <tr className="border-b border-[var(--rule)] text-xs uppercase tracking-wide text-[var(--gray-2)]">
-            <th className="px-5 py-4 font-semibold">Person</th>
-            <th className="px-5 py-4 font-semibold">Inquiry</th>
-            <th className="px-5 py-4 font-semibold">Message</th>
-            <th className="px-5 py-4 font-semibold">Details</th>
-            <th className="px-5 py-4 font-semibold">Status</th>
-            <th className="px-5 py-4 font-semibold whitespace-nowrap">
-              Received
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {leads.map((lead) => {
-            const person = lead.people;
-            const attrs = person?.attributes ?? {};
-            return (
-              <tr
-                key={lead.id}
-                className="border-b border-[var(--rule)] align-top last:border-b-0"
-              >
-                <td className="px-5 py-4">
-                  <div className="font-medium text-[var(--ink)]">
-                    {person?.name || "—"}
-                  </div>
-                  <a
-                    href={person ? `mailto:${person.email}` : undefined}
-                    className="font-mono text-xs text-[var(--blue)] hover:underline"
-                  >
-                    {person?.email || "—"}
-                  </a>
-                  {person?.company && (
-                    <div className="mt-1 text-xs text-[var(--gray-2)]">
-                      {person.company}
-                    </div>
-                  )}
-                </td>
-                <td className="px-5 py-4 text-[var(--ink)]">
-                  {TYPE_LABELS[lead.type] ?? lead.type}
-                </td>
-                <td className="max-w-xs px-5 py-4 text-[var(--gray-2)]">
-                  <p className="whitespace-pre-wrap break-words">
-                    {lead.message || "—"}
-                  </p>
-                </td>
-                <td className="px-5 py-4">
-                  <dl className="space-y-1 text-xs text-[var(--gray-2)]">
-                    <AttrRow label="Heard via" value={attrs.how_they_heard} />
-                    <AttrRow label="Company size" value={attrs.company_size} />
-                    <AttrRow label="Budget" value={attrs.estimated_budget} />
-                  </dl>
-                </td>
-                <td className="px-5 py-4">
-                  <StatusBadge status={lead.status} />
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap text-xs text-[var(--gray-2)]">
-                  {formatDate(lead.created_at)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function AttrRow({ label, value }: { label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <div className="flex gap-1.5">
-      <dt className="text-[var(--gray-1)]">{label}:</dt>
-      <dd className="text-[var(--ink-soft)]">{value}</dd>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className="inline-block rounded-full bg-[var(--blue-soft)] px-3 py-1 text-xs font-medium text-[var(--blue)]">
-      {STATUS_LABELS[status] ?? status}
-    </span>
   );
 }
