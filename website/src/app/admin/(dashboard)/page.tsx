@@ -1,7 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { ActivityLogRow, LeadRow } from "@/lib/leads";
 import { LeadsBoard } from "./leads-board";
-import { LogoutButton } from "./logout-button";
 
 // Render on every request — never at build time (there is no database during
 // `next build`). This keeps the build green without a database connection.
@@ -60,22 +59,16 @@ export default async function AdminLeadsPage() {
   const [leads, activity] = await Promise.all([fetchLeads(), fetchActivityLog()]);
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-6 py-16 sm:py-20">
-      <header className="mb-10 flex items-start justify-between gap-4">
-        <div>
-          <p className="mb-2 font-mono text-xs uppercase tracking-widest text-[var(--gray-2)]">
-            Jasper AI · Admin
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">
-            Leads
-          </h1>
-          <p className="mt-2 text-[var(--gray-2)]">
-            Every inquiry from the site, worked from first contact to won or
-            lost. Click a card to see the full record and move it to a new
-            stage.
-          </p>
-        </div>
-        <LogoutButton />
+    <div>
+      <header className="mb-10">
+        <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">
+          Leads
+        </h1>
+        <p className="mt-2 text-[var(--gray-2)]">
+          Every inquiry from the site, worked from first contact to won or
+          lost. Click a card to see the full record and move it to a new
+          stage.
+        </p>
       </header>
 
       {leads === null || leads.length === 0 ? (
@@ -83,7 +76,7 @@ export default async function AdminLeadsPage() {
       ) : (
         <LeadsBoard leads={leads} activity={activity} />
       )}
-    </main>
+    </div>
   );
 }
 
