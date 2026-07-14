@@ -7,6 +7,9 @@ const initialState: ContactState = { success: false };
 
 const fieldClass =
   "w-full rounded-lg border border-[var(--rule)] bg-[var(--paper)] px-4 py-3 text-[var(--ink)] outline-none transition focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue-soft)]";
+const selectClass =
+  `${fieldClass} appearance-none bg-no-repeat bg-[position:right_1rem_center] bg-[length:0.875rem] pr-10 ` +
+  `bg-[image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')]`;
 const labelClass = "mb-1.5 block text-sm font-semibold text-[var(--ink)]";
 
 export function ContactForm() {
@@ -73,7 +76,7 @@ export function ContactForm() {
             data-testid="contact-type"
             name="type"
             defaultValue="ai_development_project"
-            className={fieldClass}
+            className={selectClass}
           >
             <option value="ai_development_project">
               AI Development Project
@@ -125,7 +128,7 @@ export function ContactForm() {
             data-testid="contact-company-size"
             name="company_size"
             defaultValue="Solo"
-            className={fieldClass}
+            className={selectClass}
           >
             <option>Solo</option>
             <option>Startup (2–10)</option>
@@ -146,7 +149,7 @@ export function ContactForm() {
           data-testid="contact-budget"
           name="estimated_budget"
           defaultValue="Under $5k"
-          className={fieldClass}
+          className={selectClass}
         >
           <option>Under $5k</option>
           <option>$5k–$20k</option>
