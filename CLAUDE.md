@@ -8,7 +8,7 @@
   evaluation, architecture design, implementation planning), and ongoing monthly
   support & development retainers.
 - **Tagline:** AI systems that ship.
-- **Domain:** none yet — live at https://jasper-ai.vercel.app (buy jasper-ai.com before email features)
+- **Domain:** none yet — live at https://jasper-ai-neon.vercel.app (buy jasper-ai.com before email features; the plain jasper-ai.vercel.app alias was taken)
 - **Design direction:** Minimalist Apple — clean, generous white space, calm, premium.
 
 ## Stack

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product plan · Jasper AI</title>
+<style>
+  :root {
+    --ink: #1d1d1f;
+    --ink-secondary: #6e6e73;
+    --accent: #0071e3;
+    --bg: #ffffff;
+    --bg-soft: #f5f5f7;
+    --rule: #d2d2d7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 72px 32px 96px;
+  }
+  header { margin-bottom: 64px; }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 64px 0 20px;
+    padding-top: 40px;
+    border-top: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-secondary);
+    margin: 32px 0 12px;
+  }
+  p { margin-bottom: 16px; }
+  .lede {
+    font-size: 21px;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .muted { color: var(--ink-secondary); }
+  .card {
+    background: var(--bg-soft);
+    border-radius: 18px;
+    padding: 28px 32px;
+    margin: 24px 0;
+  }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+  ul.plain {
+    list-style: none;
+    margin-bottom: 16px;
+  }
+  ul.plain li {
+    padding-left: 22px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.plain li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--ink-secondary);
+  }
+  dl.kv {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    row-gap: 14px;
+    column-gap: 24px;
+  }
+  dl.kv dt {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink-secondary);
+    padding-top: 1px;
+  }
+  dl.kv dd { font-size: 16px; }
+  dl.kv dd ul.plain { margin-bottom: 0; }
+  dl.kv dd ul.plain li { margin-bottom: 6px; }
+  code {
+    font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+      monospace;
+    font-size: 0.88em;
+    background: var(--bg-soft);
+    border-radius: 6px;
+    padding: 2px 6px;
+  }
+  .card code { background: #e8e8ed; }
+  ul.checklist {
+    list-style: none;
+    margin-bottom: 16px;
+  }
+  ul.checklist li {
+    position: relative;
+    padding-left: 34px;
+    margin-bottom: 12px;
+  }
+  ul.checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--rule);
+    border-radius: 5px;
+    background: var(--bg);
+  }
+  ul.checklist.criteria li::before {
+    border-color: var(--accent);
+  }
+  .build {
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 36px 40px;
+    margin: 32px 0;
+  }
+  .build-tag {
+    display: inline-block;
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 100px;
+    padding: 5px 14px;
+    margin-bottom: 16px;
+  }
+  .build h2 {
+    border: none;
+    margin: 0 0 20px;
+    padding: 0;
+    font-size: 28px;
+  }
+  .goal {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.55;
+  }
+  footer {
+    margin-top: 72px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-secondary);
+    font-size: 14px;
+  }
+  @media (max-width: 640px) {
+    .page { padding: 48px 20px 64px; }
+    h1 { font-size: 34px; }
+    dl.kv { grid-template-columns: 1fr; row-gap: 4px; }
+    dl.kv dd { margin-bottom: 12px; }
+    .build { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Product plan</div>
+  <h1>Jasper AI</h1>
+</header>
+
+<section>
+  <h2 style="border:none; padding-top:0; margin-top:0;">What we're actually building and why</h2>
+  <p class="lede">In one sentence: Every inquiry for AI development, consulting, or
+  retainer work lands in one pipeline that I work from first contact to won
+  or lost — so no opportunity ever again depends on my inbox and my memory,
+  which is exactly where leads would slip today.</p>
+
+  <p><strong>Who it's for:</strong> Me as the operator — an AI engineer launching a
+  consulting and custom AI development practice — and the people who reach
+  out: founders and teams who want AI agents, RAG systems, knowledge graph
+  solutions, or custom LLM applications built; businesses who want AI
+  strategy and architecture advice; and clients who want ongoing monthly
+  support.</p>
+
+  <p><strong>What we are deliberately NOT building:</strong> no affiliates, no
+  subscriptions, no cohorts, no analytics dashboards, no integrations beyond
+  what's named here. If it isn't load-bearing for capturing and working a
+  lead, it's out.</p>
+</section>
+
+<section>
+  <h2>The brief (drives every /goal command)</h2>
+  <p>You are my engineering partner for building my CRM today. Build a
+  Next.js (App Router) + Supabase + Vercel app with two surfaces: a public
+  marketing site that captures leads, and an <code>/admin</code> CRM. The
+  <code>/admin</code> section is open and unprotected at first; it gets locked
+  down with email-and-password Supabase Auth later in the build. Do not add
+  any auth, login page, or route protection until I explicitly ask for it.</p>
+
+  <p>The CRM has exactly four parts:</p>
+
+  <div class="card">
+    <ul class="plain">
+      <li><strong>People:</strong> a contact directory, one row per person, deduplicated
+      by email. Columns: <code>id</code>, <code>email</code> (unique), <code>name</code>,
+      <code>phone</code>, <code>company</code>, <code>role</code>, <code>source_site</code>,
+      <code>ok_to_contact</code>, <code>attributes</code> (jsonb), <code>created_at</code>,
+      <code>updated_at</code>. The custom attributes I named go inside
+      <code>attributes</code>. The keys are my attribute names and the values match
+      the types I specified.</li>
+      <li><strong>Contacts:</strong> an inquiry pipeline. Each inquiry links to a person
+      and moves through stages <code>new_lead</code>, <code>contacted</code>,
+      <code>discovery_call</code>, <code>proposal</code>, <code>won</code>, <code>lost</code>.
+      Columns: <code>id</code>, <code>person_id</code>, <code>type</code>, <code>subject</code>,
+      <code>message</code>, <code>source</code>, <code>status</code>, <code>metadata</code>
+      (jsonb), <code>created_at</code>. The <code>type</code> field is constrained to
+      exactly the inquiry types I gave in Q4 (lowercased).</li>
+      <li><strong>activity_log:</strong> every status change on a Contacts row writes one
+      row here. Columns: <code>id</code>, <code>contact_id</code>, <code>person_id</code>,
+      <code>from_status</code>, <code>to_status</code>, <code>actor</code>, <code>note</code>,
+      <code>created_at</code>.</li>
+      <li><strong>Orders:</strong> what people bought. Columns: <code>id</code>,
+      <code>person_id</code>, <code>product_name</code>, <code>amount_cents</code>,
+      <code>currency</code>, <code>status</code> (pending, paid, refunded, cancelled),
+      <code>created_at</code>.</li>
+      <li><strong>Newsletter:</strong> people who opted in to email, tracked by
+      <code>people.ok_to_contact = true</code>. No separate table.</li>
+    </ul>
+  </div>
+
+  <h3>Conventions</h3>
+  <ul class="plain">
+    <li>Upsert people by email; never duplicate a person.</li>
+    <li>Access Supabase server-side with the service key; never expose
+    secrets to the client; keys live in environment variables only.</li>
+    <li>Keep it simple: no affiliates, no subscriptions, no cohorts.</li>
+    <li>Work one step at a time and wait for my approval before each step.</li>
+  </ul>
+
+  <h3>My answers</h3>
+  <div class="card">
+    <dl class="kv">
+      <dt>My business</dt>
+      <dd>Jasper AI — fixed-scope AI development projects (AI agents, RAG
+      systems, knowledge graph solutions, custom LLM applications), AI
+      consulting (use-case evaluation, AI architecture design, implementation
+      planning), and ongoing monthly support and development retainers.</dd>
+
+      <dt>My inquiry types<br>(contacts.type enum)</dt>
+      <dd><code>ai_development_project</code>, <code>ai_consulting</code>,
+      <code>ongoing_support</code>, <code>general_inquiry</code></dd>
+
+      <dt>My design system</dt>
+      <dd>Minimalist Apple</dd>
+
+      <dt>My brand colors</dt>
+      <dd>Use the design system defaults (no brand colors yet)</dd>
+
+      <dt>My custom attributes<br>(people.attributes jsonb keys)</dt>
+      <dd>
+        <ul class="plain">
+          <li><code>how_they_heard</code> — short typed note (e.g. LinkedIn,
+          referral, GitHub, personal website)</li>
+          <li><code>company_size</code> — pick-from-a-list: Solo, Startup (2–10),
+          Small Business (11–50), Medium Business (51–250), Enterprise (250+)</li>
+          <li><code>estimated_budget</code> — pick-from-a-list: Under $5k,
+          $5k–$20k, $20k–$50k, Over $50k</li>
+        </ul>
+      </dd>
+
+      <dt>My domain</dt>
+      <dd>jasper-ai.com</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="build">
+  <div class="build-tag">Build 1</div>
+  <h2>Prove the loop</h2>
+  <p class="goal"><strong>Goal:</strong> A stranger can submit an inquiry on my live site
+  and I can see that lead inside <code>/admin</code>, on the same day, without
+  anyone touching the database by hand. This closes the exact gap I named in
+  Q1 — today an inquiry would live in LinkedIn or email and survive only as
+  long as my memory does. It is the smallest thing that proves the whole
+  system works end to end. Nothing else matters until this is real.</p>
+
+  <p><strong>Scope:</strong> the People and Contacts tables with my custom attributes
+  (<code>how_they_heard</code>, <code>company_size</code>, <code>estimated_budget</code>)
+  wired into the jsonb column; a working contact form on the live marketing
+  site that writes a People row (upserted by email) and a linked Contacts
+  row; one admin login with a single verified account; one admin page that
+  lists incoming leads newest first.</p>
+
+  <h3>Definition of Done (every box must be true)</h3>
+  <ul class="checklist">
+    <li>The contact form is live on jasper-ai.com, not localhost.</li>
+    <li>Submitting it creates exactly one People row and one linked Contacts
+    row, deduplicated by email on repeat submits.</li>
+    <li><code>how_they_heard</code>, <code>company_size</code>, and
+    <code>estimated_budget</code> are saved correctly inside
+    <code>attributes</code>.</li>
+    <li>A new Contacts row lands in status <code>new_lead</code>.</li>
+    <li>I can log in to <code>/admin</code> with my one seeded account.</li>
+    <li>The admin leads page shows the submission within seconds, newest first.</li>
+    <li>I personally run the full flow once: submit as a visitor, log in, see it.</li>
+  </ul>
+
+  <h3>Success Criteria (how we know it's good, not just done)</h3>
+  <ul class="checklist criteria">
+    <li>From a cold start, I can go submit to visible in under 60 seconds.</li>
+    <li>Two submissions from the same email produce one person, not two.</li>
+    <li>I can read the lead's name, type, message, and my custom attributes
+    on the admin page without opening Supabase.</li>
+    <li>No lead can land and go unseen — the inbox-and-memory failure mode I
+    named in Q1 is structurally impossible for anything submitted through
+    the site.</li>
+  </ul>
+</section>
+
+<section class="build">
+  <div class="build-tag">Build 2</div>
+  <h2>Make it the system I run the business from</h2>
+  <p class="goal"><strong>Goal:</strong> Turn the proven loop into the place I actually
+  manage relationships and money. After this, I work leads, record what
+  people bought, and keep my newsletter list entirely from <code>/admin</code>
+  behind my login, and every new lead gets an automatic confirmation email.
+  This is what makes my Q2 ninety-day win achievable: every inquiry captured
+  automatically, every follow-up managed from the pipeline instead of
+  memory, in real daily use at 3–5 inquiries a week and ready for more.</p>
+
+  <p><strong>Scope:</strong> the rest of the <code>/admin</code> back end behind my login:
+  the full People directory, all inquiries with working pipeline stages, the
+  Orders list, and the Newsletter list (<code>ok_to_contact = true</code>). Plus
+  Resend wired so a confirmation email fires on form submit. Every Contacts
+  status change writes an activity_log row.</p>
+
+  <h3>Definition of Done (every box must be true)</h3>
+  <ul class="checklist">
+    <li>All four parts (People, Contacts, Orders, Newsletter) are visible and
+    usable in <code>/admin</code>, and all of <code>/admin</code> sits behind my
+    login.</li>
+    <li>I can move a Contacts row through <code>new_lead</code> to
+    <code>contacted</code> to <code>discovery_call</code> to <code>proposal</code> to
+    <code>won</code> or <code>lost</code> from the interface.</li>
+    <li>Each status change writes one activity_log row with
+    <code>from_status</code>, <code>to_status</code>, and <code>actor</code>.</li>
+    <li>The People directory is searchable and shows <code>how_they_heard</code>,
+    <code>company_size</code>, and <code>estimated_budget</code>.</li>
+    <li>I can add an Orders row against a person and see it on their record.</li>
+    <li>The Newsletter list shows everyone with
+    <code>ok_to_contact = true</code>.</li>
+    <li>Resend is connected, jasper-ai.com is verified as the sending domain,
+    and a real confirmation email arrives after a form submit.</li>
+  </ul>
+
+  <h3>Success Criteria (how we know it's good, not just done)</h3>
+  <ul class="checklist criteria">
+    <li>I can run a lead from first inquiry to won without leaving
+    <code>/admin</code> or touching the database.</li>
+    <li>A person's full history (their inquiries, status changes, and orders)
+    is visible in one place.</li>
+    <li>A test submission produces a confirmation email in the inbox, not
+    spam, with jasper-ai.com as the sender.</li>
+    <li>Nothing in <code>/admin</code> is reachable without logging in.</li>
+    <li>At 3–5 inquiries a week — my real starting volume from Q2 — this
+    keeps up without me dropping to the database by hand, and nothing about
+    the design breaks when that number grows.</li>
+  </ul>
+</section>
+
+<footer>
+  Jasper AI · Product plan · Infinite Leverage retreat · This HTML is a
+  formatted view of Working Files/product-plan.md — the two files carry the
+  same plan.
+</footer>
+
+</div>
+</body>
+</html>

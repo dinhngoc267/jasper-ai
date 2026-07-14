@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jasper AI · CRM Prototype</title>
+<style>
+  :root {
+    --ink: #1d1d1f;
+    --ink-2: #6e6e73;
+    --ink-3: #a1a1a6;
+    --accent: #0071e3;
+    --accent-soft: #eaf3fd;
+    --bg: #ffffff;
+    --bg-soft: #f5f5f7;
+    --bg-softer: #fafafa;
+    --rule: #e5e5ea;
+    --rule-2: #d2d2d7;
+    --green: #1f8a4c;
+    --green-soft: #e7f5ec;
+    --red: #d0342c;
+    --red-soft: #fbeceb;
+    --amber: #b25e09;
+    --amber-soft: #fdf1e3;
+    --purple: #6e4bcf;
+    --purple-soft: #f0ebfb;
+    --radius: 12px;
+    --shadow: 0 8px 30px rgba(0,0,0,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg-soft);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select, textarea { font: inherit; color: inherit; }
+
+  /* ---------- prototype chrome ---------- */
+  .proto-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--ink);
+    color: #fff;
+  }
+  .proto-bar .label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #a1a1a6; }
+  .seg {
+    display: inline-flex; background: rgba(255,255,255,.14); border-radius: 100px; padding: 3px;
+  }
+  .seg button {
+    color: #d5d5da; font-size: 13px; font-weight: 500;
+    padding: 5px 16px; border-radius: 100px;
+  }
+  .seg button.active { background: #fff; color: var(--ink); font-weight: 600; }
+
+  .stage-wrap { height: calc(100vh - 52px); overflow: hidden; }
+  .surface { height: 100%; display: none; }
+  .surface.visible { display: block; }
+
+  /* ---------- public site ---------- */
+  #site { overflow-y: auto; background: var(--bg); }
+  .site-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 980px; margin: 0 auto; padding: 20px 32px;
+  }
+  .wordmark { font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
+  .wordmark span { color: var(--accent); }
+  .site-nav a { color: var(--ink-2); text-decoration: none; font-size: 13px; margin-left: 24px; }
+  .hero { max-width: 980px; margin: 0 auto; padding: 72px 32px 40px; text-align: center; }
+  .hero h1 { font-size: 46px; font-weight: 700; letter-spacing: -.025em; line-height: 1.08; }
+  .hero p { font-size: 19px; color: var(--ink-2); max-width: 560px; margin: 18px auto 0; }
+  .offers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 980px; margin: 32px auto 0; padding: 0 32px; }
+  .offer { background: var(--bg-soft); border-radius: 16px; padding: 24px; text-align: left; }
+  .offer h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .offer p { font-size: 13px; color: var(--ink-2); }
+  .band { max-width: 980px; margin: 72px auto 0; padding: 0 32px; }
+  .band h2 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; text-align: center; }
+  .band .band-sub { text-align: center; color: var(--ink-2); max-width: 540px; margin: 10px auto 32px; font-size: 15px; }
+  .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .pain { border: 1px solid var(--rule); border-radius: 16px; padding: 22px; }
+  .pain .q { font-size: 14px; font-weight: 600; line-height: 1.45; }
+  .pain .a { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  .pain .a strong { color: var(--ink); }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .step { background: var(--bg-soft); border-radius: 16px; padding: 22px; position: relative; }
+  .step .num {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; margin-bottom: 12px;
+  }
+  .step h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
+  .step p { font-size: 12.5px; color: var(--ink-2); }
+  .faq { max-width: 680px; margin: 0 auto; }
+  .faq details { border-bottom: 1px solid var(--rule); }
+  .faq summary {
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 4px; font-size: 14.5px; font-weight: 600;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-size: 18px; font-weight: 400; color: var(--ink-3); }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { padding: 0 4px 16px; font-size: 13.5px; color: var(--ink-2); max-width: 600px; }
+  .cta-band {
+    max-width: 980px; margin: 72px auto 0; padding: 0 32px;
+  }
+  .cta-inner {
+    background: var(--ink); color: #fff; border-radius: 20px; padding: 44px 32px; text-align: center;
+  }
+  .cta-inner h2 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .cta-inner p { color: #a1a1a6; margin: 8px auto 22px; font-size: 14.5px; max-width: 460px; }
+  .cta-inner a {
+    display: inline-block; background: #fff; color: var(--ink); text-decoration: none;
+    font-weight: 600; font-size: 14.5px; padding: 11px 26px; border-radius: 100px;
+  }
+  .form-section { max-width: 560px; margin: 56px auto 96px; padding: 0 32px; }
+  .form-section h2 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-bottom: 6px; }
+  .form-section > p { text-align: center; color: var(--ink-2); margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--rule-2); border-radius: 10px;
+    background: var(--bg); outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .field textarea { min-height: 96px; resize: vertical; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .check { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--ink-2); margin: 18px 0; }
+  .check input { margin-top: 3px; accent-color: var(--accent); }
+  .btn-primary {
+    display: block; width: 100%; background: var(--accent); color: #fff;
+    font-weight: 600; font-size: 15px; padding: 12px; border-radius: 12px;
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .form-success {
+    display: none; text-align: center; background: var(--green-soft); color: var(--green);
+    border-radius: 12px; padding: 18px; font-weight: 500; margin-top: 16px;
+  }
+
+  /* ---------- admin ---------- */
+  #admin { display: none; }
+  #admin.visible { display: flex; }
+  .sidebar {
+    width: 216px; flex-shrink: 0; background: var(--bg-softer);
+    border-right: 1px solid var(--rule); padding: 20px 12px; display: flex; flex-direction: column;
+  }
+  .sidebar .brand { font-weight: 700; font-size: 14px; padding: 0 10px 18px; letter-spacing: -.01em; }
+  .sidebar .brand small { display: block; font-weight: 500; color: var(--ink-3); font-size: 11px; margin-top: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 8px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500;
+    color: var(--ink-2); text-align: left; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--bg-soft); color: var(--ink); }
+  .nav-item.active { background: #ececf0; color: var(--ink); font-weight: 600; }
+  .nav-item .count {
+    margin-left: auto; font-size: 11px; font-weight: 600; color: var(--ink-3);
+    background: var(--bg); border: 1px solid var(--rule); border-radius: 100px; padding: 0 7px;
+  }
+  .nav-item svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; flex-shrink: 0; }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--rule);
+  }
+  .topbar h2 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .topbar .sub { color: var(--ink-3); font-weight: 500; font-size: 13px; margin-left: 8px; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-soft); border: 1px solid transparent; border-radius: 8px; padding: 6px 10px; width: 260px;
+  }
+  .search:focus-within { border-color: var(--accent); background: var(--bg); }
+  .search input { border: none; background: none; outline: none; width: 100%; font-size: 13px; }
+  .search svg { width: 14px; height: 14px; stroke: var(--ink-3); fill: none; stroke-width: 2; flex-shrink: 0; }
+  .content { flex: 1; overflow: auto; }
+
+  /* pipeline board */
+  .board { display: flex; gap: 12px; padding: 20px 24px; height: 100%; overflow-x: auto; align-items: flex-start; }
+  .col { width: 248px; flex-shrink: 0; display: flex; flex-direction: column; max-height: 100%; }
+  .col-head { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; }
+  .col-head .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .col-head .name { font-size: 12.5px; font-weight: 600; }
+  .col-head .n { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .col-body { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding: 2px; }
+  .card {
+    background: var(--bg); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 12px 14px; cursor: pointer; transition: box-shadow .12s, border-color .12s;
+  }
+  .card:hover { border-color: var(--rule-2); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .card .who { font-weight: 600; font-size: 13.5px; }
+  .card .co { color: var(--ink-2); font-size: 12.5px; margin-top: 1px; }
+  .card .meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .card .ago { font-size: 11.5px; color: var(--ink-3); }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600; border-radius: 100px; padding: 2px 9px; white-space: nowrap;
+  }
+  .b-dev { background: var(--accent-soft); color: var(--accent); }
+  .b-consult { background: var(--purple-soft); color: var(--purple); }
+  .b-support { background: var(--amber-soft); color: var(--amber); }
+  .b-general { background: var(--bg-soft); color: var(--ink-2); }
+
+  /* tables */
+  .table { width: 100%; border-collapse: collapse; }
+  .table th {
+    text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-3); padding: 12px 16px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--bg);
+  }
+  .table td { padding: 12px 16px; border-bottom: 1px solid var(--rule); font-size: 13.5px; vertical-align: middle; }
+  .table tbody tr { cursor: pointer; }
+  .table tbody tr:hover { background: var(--bg-softer); }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; margin-right: 10px; flex-shrink: 0;
+  }
+  .cell-person { display: flex; align-items: center; }
+  .cell-person .nm { font-weight: 600; }
+  .cell-person .em { font-size: 12px; color: var(--ink-2); }
+  .pill { font-size: 12px; color: var(--ink-2); background: var(--bg-soft); border-radius: 6px; padding: 2px 8px; }
+  .money { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .empty { padding: 56px; text-align: center; color: var(--ink-3); }
+
+  /* status badges for orders */
+  .st-paid { background: var(--green-soft); color: var(--green); }
+  .st-pending { background: var(--amber-soft); color: var(--amber); }
+  .st-refunded, .st-cancelled { background: var(--bg-soft); color: var(--ink-2); }
+
+  /* ---------- drawer ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(29,29,31,.32);
+    opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 40;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 92vw;
+    background: var(--bg); box-shadow: var(--shadow); z-index: 50;
+    transform: translateX(100%); transition: transform .22s cubic-bezier(.3,.9,.3,1);
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 24px 0; }
+  .drawer-head .avatar { width: 40px; height: 40px; font-size: 14px; border-radius: 12px; }
+  .drawer-title { display: flex; align-items: center; }
+  .drawer-title h3 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+  .drawer-title .sub { font-size: 12.5px; color: var(--ink-2); }
+  .icon-btn { color: var(--ink-3); padding: 6px; border-radius: 8px; line-height: 0; }
+  .icon-btn:hover { background: var(--bg-soft); color: var(--ink); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 18px 24px 32px; }
+  .sect { margin-bottom: 26px; }
+  .sect h4 { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); margin-bottom: 10px; }
+  .kv-grid { display: grid; grid-template-columns: 130px 1fr; row-gap: 8px; font-size: 13px; }
+  .kv-grid .k { color: var(--ink-2); }
+  .kv-grid .v { font-weight: 500; }
+  .msg-box { background: var(--bg-soft); border-radius: 10px; padding: 14px; font-size: 13.5px; color: var(--ink); }
+  .stage-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stage-chip {
+    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 100px;
+    border: 1px solid var(--rule-2); color: var(--ink-2); background: var(--bg);
+  }
+  .stage-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .stage-chip.current { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .stage-chip.won.current { background: var(--green); border-color: var(--green); }
+  .stage-chip.lost.current { background: var(--red); border-color: var(--red); }
+  .timeline { position: relative; padding-left: 18px; }
+  .timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 6px; width: 1.5px; background: var(--rule); }
+  .tl-item { position: relative; padding-bottom: 14px; font-size: 12.5px; }
+  .tl-item::before {
+    content: ""; position: absolute; left: -18px; top: 5px; width: 9px; height: 9px;
+    border-radius: 50%; background: var(--bg); border: 2px solid var(--accent);
+  }
+  .tl-item .when { color: var(--ink-3); font-size: 11.5px; }
+  .inq-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; margin-bottom: 8px; cursor: pointer;
+  }
+  .inq-row:hover { border-color: var(--rule-2); background: var(--bg-softer); }
+  .inq-row .t { font-weight: 600; font-size: 13px; }
+  .inq-row .s { font-size: 11.5px; color: var(--ink-2); }
+  .order-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .order-row:last-child { border-bottom: none; }
+  .add-order { display: flex; gap: 8px; margin-top: 10px; }
+  .add-order input { flex: 1; padding: 8px 10px; border: 1px solid var(--rule-2); border-radius: 8px; font-size: 13px; outline: none; }
+  .add-order input:focus { border-color: var(--accent); }
+  .add-order .amt { flex: 0 0 90px; }
+  .btn-small { background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 600; padding: 8px 14px; border-radius: 8px; }
+  .btn-small:hover { opacity: .88; }
+  .back-link { font-size: 12.5px; color: var(--accent); font-weight: 600; margin-bottom: 14px; display: inline-block; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 16px);
+    background: var(--ink); color: #fff; font-size: 13px; font-weight: 500;
+    padding: 10px 18px; border-radius: 100px; opacity: 0; pointer-events: none;
+    transition: all .2s; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<div class="proto-bar">
+  <span class="label">Jasper AI · Clickable prototype</span>
+  <div class="seg" id="surfaceSeg">
+    <button data-surface="site" class="active">Public site</button>
+    <button data-surface="admin">Admin CRM</button>
+  </div>
+  <span class="label" style="visibility:hidden">spacer</span>
+</div>
+
+<div class="stage-wrap">
+
+  <!-- ============ PUBLIC SITE ============ -->
+  <div class="surface visible" id="site">
+    <nav class="site-nav">
+      <div class="wordmark">Jasper<span> AI</span></div>
+      <div>
+        <a href="#why">Why</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </nav>
+    <section class="hero">
+      <h1>AI systems that ship.</h1>
+      <p>Custom AI agents, RAG systems, and LLM applications — designed, built, and maintained by an engineer who's done it before.</p>
+    </section>
+    <div class="offers">
+      <div class="offer"><h3>AI Development</h3><p>Fixed-scope builds: AI agents, RAG systems, knowledge graphs, custom LLM apps.</p></div>
+      <div class="offer"><h3>AI Consulting</h3><p>Use-case evaluation, architecture design, and implementation planning.</p></div>
+      <div class="offer"><h3>Ongoing Support</h3><p>Monthly retainers for continuous development and maintenance.</p></div>
+    </div>
+
+    <section class="band" id="why">
+      <h2>You've probably seen AI projects stall.</h2>
+      <p class="band-sub">Most AI initiatives die between the demo and production. Here's how this engagement is built differently.</p>
+      <div class="pain-grid">
+        <div class="pain">
+          <div class="q">"The demo was great. Then it never shipped."</div>
+          <div class="a">Every project is <strong>fixed-scope with a definition of done</strong> — we agree up front what "shipped" means, and that's what you pay for.</div>
+        </div>
+        <div class="pain">
+          <div class="q">"The agency handed us a black box nobody could maintain."</div>
+          <div class="a">You get <strong>documented, handover-ready code</strong> — and if you'd rather not maintain it, a monthly retainer keeps the engineer who built it on call.</div>
+        </div>
+        <div class="pain">
+          <div class="q">"We don't even know if AI fits our use case."</div>
+          <div class="a">That's what <strong>consulting is for</strong>: use-case evaluation and architecture design before you commit a build budget. Sometimes the honest answer is "don't build this."</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="how">
+      <h2>How it works</h2>
+      <p class="band-sub">A simple path from first message to shipped system — you always know which step you're on.</p>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><h3>Send an inquiry</h3><p>Use the form below. I reply within one business day.</p></div>
+        <div class="step"><div class="num">2</div><h3>Discovery call</h3><p>30 minutes on your use case, data, and constraints. Free, no deck.</p></div>
+        <div class="step"><div class="num">3</div><h3>Fixed-scope proposal</h3><p>Deliverables, timeline, and one price. No hourly meters running.</p></div>
+        <div class="step"><div class="num">4</div><h3>Build &amp; ship</h3><p>Working software in production — with optional ongoing support after.</p></div>
+      </div>
+    </section>
+
+    <section class="band" id="faq">
+      <h2>Common questions</h2>
+      <p class="band-sub">If yours isn't here, send it through the form — that's what "General Inquiry" is for.</p>
+      <div class="faq">
+        <details>
+          <summary>What kind of projects do you take on?</summary>
+          <p>AI agents, RAG systems, knowledge graph solutions, and custom LLM applications — fixed-scope builds that end in working software, not slide decks.</p>
+        </details>
+        <details>
+          <summary>How does pricing work?</summary>
+          <p>Development projects are fixed-scope and fixed-price, agreed before work starts. Consulting is scoped per engagement. Ongoing support is a flat monthly retainer.</p>
+        </details>
+        <details>
+          <summary>How long does a typical build take?</summary>
+          <p>Most fixed-scope builds land in 2–8 weeks depending on complexity. You'll get a concrete timeline in the proposal, and it's part of the definition of done.</p>
+        </details>
+        <details>
+          <summary>Who owns the code and the data?</summary>
+          <p>You do. Full IP transfer on final payment, and your data never leaves infrastructure you control.</p>
+        </details>
+        <details>
+          <summary>What if we're not sure AI is the right answer?</summary>
+          <p>Start with a consulting engagement. Use-case evaluation exists precisely so you don't spend a build budget finding out.</p>
+        </details>
+      </div>
+    </section>
+
+    <div class="cta-band">
+      <div class="cta-inner">
+        <h2>Ready when you are.</h2>
+        <p>Tell me what you're trying to build. Worst case, you leave the discovery call knowing what not to build.</p>
+        <a href="#contact">Start a conversation</a>
+      </div>
+    </div>
+
+    <section class="form-section" id="contact">
+      <h2>Start a conversation</h2>
+      <p>Tell me what you're building. I reply within one business day.</p>
+      <form id="leadForm">
+        <div class="field-row">
+          <div class="field"><label>Name</label><input required name="name" placeholder="Ada Lovelace"></div>
+          <div class="field"><label>Email</label><input required type="email" name="email" placeholder="ada@company.com"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Company</label><input name="company" placeholder="Analytical Engines Inc."></div>
+          <div class="field"><label>What do you need?</label>
+            <select name="type">
+              <option value="ai_development_project">AI Development Project</option>
+              <option value="ai_consulting">AI Consulting</option>
+              <option value="ongoing_support">Ongoing Support</option>
+              <option value="general_inquiry">General Inquiry</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Message</label><textarea required name="message" placeholder="What are you trying to build, and what's the outcome you want?"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>How did you hear about me?</label><input name="how_they_heard" placeholder="LinkedIn, referral, GitHub…"></div>
+          <div class="field"><label>Company size</label>
+            <select name="company_size">
+              <option>Solo</option><option>Startup (2–10)</option><option>Small Business (11–50)</option>
+              <option>Medium Business (51–250)</option><option>Enterprise (250+)</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Estimated project budget</label>
+          <select name="estimated_budget">
+            <option>Under $5k</option><option>$5k–$20k</option><option>$20k–$50k</option><option>Over $50k</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" name="ok_to_contact" checked> It's OK to email me occasional updates about AI engineering. You can opt out anytime.</label>
+        <button class="btn-primary" type="submit">Send inquiry</button>
+        <div class="form-success" id="formSuccess">✓ Inquiry sent — flip to the Admin CRM to see it land in the pipeline.</div>
+      </form>
+    </section>
+  </div>
+
+  <!-- ============ ADMIN ============ -->
+  <div class="surface" id="admin">
+    <aside class="sidebar">
+      <div class="brand">Jasper AI<small>admin · jasper-ai.com</small></div>
+      <button class="nav-item active" data-view="leads">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        Leads <span class="count" id="countLeads"></span>
+      </button>
+      <button class="nav-item" data-view="people">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        People <span class="count" id="countPeople"></span>
+      </button>
+      <button class="nav-item" data-view="orders">
+        <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>
+        Orders <span class="count" id="countOrders"></span>
+      </button>
+      <button class="nav-item" data-view="newsletter">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        Newsletter <span class="count" id="countNews"></span>
+      </button>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <div><h2 id="viewTitle">Leads</h2><span class="sub" id="viewSub"></span></div>
+        <div class="search" id="searchBox" style="display:none">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="searchInput" placeholder="Search people…">
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- drawer -->
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer"></aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= mock data ================= */
+const NOW = Date.now();
+const h = n => NOW - n * 3600e3;
+const d = n => NOW - n * 86400e3;
+
+const STAGES = ["new_lead","contacted","discovery_call","proposal","won","lost"];
+const STAGE_LABEL = { new_lead:"New lead", contacted:"Contacted", discovery_call:"Discovery call", proposal:"Proposal", won:"Won", lost:"Lost" };
+const STAGE_COLOR = { new_lead:"#0071e3", contacted:"#6e4bcf", discovery_call:"#b25e09", proposal:"#1d1d1f", won:"#1f8a4c", lost:"#d0342c" };
+const TYPE_LABEL = { ai_development_project:"AI Development", ai_consulting:"AI Consulting", ongoing_support:"Ongoing Support", general_inquiry:"General" };
+const TYPE_CLASS = { ai_development_project:"b-dev", ai_consulting:"b-consult", ongoing_support:"b-support", general_inquiry:"b-general" };
+
+let seq = 100;
+const state = {
+  people: [
+    { id:1, email:"maya@northwindlabs.com", name:"Maya Chen", company:"Northwind Labs", role:"CTO", ok_to_contact:true,  created_at:d(21), attributes:{ how_they_heard:"LinkedIn post on RAG evals", company_size:"Startup (2–10)", estimated_budget:"$20k–$50k" } },
+    { id:2, email:"tom@heldercapital.com", name:"Tom Helder", company:"Helder Capital", role:"Partner", ok_to_contact:true, created_at:d(17), attributes:{ how_they_heard:"Referral — Anna K.", company_size:"Small Business (11–50)", estimated_budget:"Over $50k" } },
+    { id:3, email:"sofia@brightpath.io", name:"Sofia Reyes", company:"BrightPath", role:"Head of Ops", ok_to_contact:false, created_at:d(12), attributes:{ how_they_heard:"GitHub — knowledge graph repo", company_size:"Medium Business (51–250)", estimated_budget:"$5k–$20k" } },
+    { id:4, email:"jjanssen@delta-log.nl", name:"Jori Janssen", company:"Delta Logistics", role:"Innovation Lead", ok_to_contact:true, created_at:d(9), attributes:{ how_they_heard:"Conference talk", company_size:"Enterprise (250+)", estimated_budget:"Over $50k" } },
+    { id:5, email:"priya@lumenhealth.co", name:"Priya Nair", company:"Lumen Health", role:"Founder", ok_to_contact:true, created_at:d(6), attributes:{ how_they_heard:"Personal website", company_size:"Startup (2–10)", estimated_budget:"$5k–$20k" } },
+    { id:6, email:"marc@atelier-m.fr", name:"Marc Dubois", company:"Atelier M", role:"Owner", ok_to_contact:false, created_at:d(4), attributes:{ how_they_heard:"Google search", company_size:"Solo", estimated_budget:"Under $5k" } },
+    { id:7, email:"lin@quantabio.com", name:"Lin Zhao", company:"Quanta Bio", role:"VP Engineering", ok_to_contact:true, created_at:d(2), attributes:{ how_they_heard:"LinkedIn DM", company_size:"Medium Business (51–250)", estimated_budget:"$20k–$50k" } },
+    { id:8, email:"sam@ferrostrade.com", name:"Sam Okafor", company:"Ferros Trade", role:"COO", ok_to_contact:true, created_at:h(5), attributes:{ how_they_heard:"Referral — Tom Helder", company_size:"Small Business (11–50)", estimated_budget:"$20k–$50k" } },
+  ],
+  contacts: [
+    { id:11, person_id:8, type:"ai_development_project", subject:"Quote automation agent", message:"We want an agent that drafts trade quotes from inbound emails and our pricing sheets. Manual quoting eats ~3 hours a day.", source:"website", status:"new_lead", created_at:h(5) },
+    { id:12, person_id:7, type:"ai_consulting", subject:"RAG architecture review", message:"We built a prototype RAG pipeline over research docs but retrieval quality is poor. Need an expert review before we scale it.", source:"linkedin", status:"new_lead", created_at:d(2) },
+    { id:13, person_id:5, type:"ai_development_project", subject:"Patient-intake assistant", message:"Exploring an LLM assistant that structures patient intake notes for our clinics. Compliance is a key concern.", source:"website", status:"contacted", created_at:d(5) },
+    { id:14, person_id:6, type:"general_inquiry", subject:"Question about pricing", message:"Do you take on small one-week engagements? I run a solo design studio and want a simple internal chatbot.", source:"website", status:"contacted", created_at:d(4) },
+    { id:15, person_id:4, type:"ai_consulting", subject:"AI roadmap for logistics ops", message:"Board wants an AI strategy for our routing and customs paperwork. Looking for someone to evaluate use cases and design the architecture.", source:"email", status:"discovery_call", created_at:d(8) },
+    { id:16, person_id:3, type:"ongoing_support", subject:"Maintain our doc-QA bot", message:"Our internal doc-QA bot was built by a contractor who left. We need someone on a monthly retainer to maintain and improve it.", source:"website", status:"proposal", created_at:d(11) },
+    { id:17, person_id:2, type:"ai_development_project", subject:"Deal-memo knowledge graph", message:"We want a knowledge graph over 10 years of deal memos with an LLM query layer for our analysts.", source:"referral", status:"won", created_at:d(16) },
+    { id:18, person_id:1, type:"ai_development_project", subject:"Eval harness for support agent", message:"Need a custom eval harness for our support agent before launch. Timeline was too tight for us this quarter.", source:"linkedin", status:"lost", created_at:d(20) },
+  ],
+  activity: [
+    { id:21, contact_id:13, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"Sent intro + compliance questions", created_at:d(4) },
+    { id:22, contact_id:14, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"Replied with mini-engagement options", created_at:d(3) },
+    { id:23, contact_id:15, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"", created_at:d(7) },
+    { id:24, contact_id:15, from_status:"contacted", to_status:"discovery_call", actor:"jasper", note:"Call booked for Friday", created_at:d(6) },
+    { id:25, contact_id:16, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"", created_at:d(10) },
+    { id:26, contact_id:16, from_status:"contacted", to_status:"discovery_call", actor:"jasper", note:"Walked through their repo", created_at:d(9) },
+    { id:27, contact_id:16, from_status:"discovery_call", to_status:"proposal", actor:"jasper", note:"Sent $3.5k/mo retainer proposal", created_at:d(7) },
+    { id:28, contact_id:17, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"", created_at:d(15) },
+    { id:29, contact_id:17, from_status:"contacted", to_status:"discovery_call", actor:"jasper", note:"", created_at:d(14) },
+    { id:30, contact_id:17, from_status:"discovery_call", to_status:"proposal", actor:"jasper", note:"Fixed scope: graph + query layer", created_at:d(12) },
+    { id:31, contact_id:17, from_status:"proposal", to_status:"won", actor:"jasper", note:"Signed. Kickoff Monday.", created_at:d(10) },
+    { id:32, contact_id:18, from_status:"new_lead", to_status:"contacted", actor:"jasper", note:"", created_at:d(19) },
+    { id:33, contact_id:18, from_status:"contacted", to_status:"lost", actor:"jasper", note:"Timeline mismatch — revisit next quarter", created_at:d(18) },
+  ],
+  orders: [
+    { id:41, person_id:2, product_name:"Deal-memo knowledge graph — phase 1", amount_cents:4800000, currency:"USD", status:"paid", created_at:d(9) },
+    { id:42, person_id:2, product_name:"Deal-memo knowledge graph — phase 2", amount_cents:3600000, currency:"USD", status:"pending", created_at:d(2) },
+    { id:43, person_id:3, product_name:"Doc-QA bot audit (pre-retainer)", amount_cents:250000, currency:"USD", status:"paid", created_at:d(8) },
+  ],
+};
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const person = id => state.people.find(p => p.id === id);
+const initials = n => n.split(/\s+/).map(w => w[0]).slice(0,2).join("").toUpperCase();
+const money = c => "$" + (c/100).toLocaleString("en-US", { minimumFractionDigits: 0 });
+function ago(ts) {
+  const m = Math.max(1, Math.round((NOW - ts)/60000));
+  if (m < 60) return m + "m ago";
+  const hrs = Math.round(m/60);
+  if (hrs < 24) return hrs + "h ago";
+  const days = Math.round(hrs/24);
+  return days === 1 ? "yesterday" : days + "d ago";
+}
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ================= surface toggle ================= */
+$("#surfaceSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-surface]");
+  if (!btn) return;
+  document.querySelectorAll("#surfaceSeg button").forEach(b => b.classList.toggle("active", b === btn));
+  const isAdmin = btn.dataset.surface === "admin";
+  $("#site").classList.toggle("visible", !isAdmin);
+  $("#admin").classList.toggle("visible", isAdmin);
+  if (isAdmin) render();
+});
+
+/* ================= public form → upsert + lead ================= */
+$("#leadForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const email = f.get("email").trim().toLowerCase();
+  let p = state.people.find(x => x.email === email);
+  const attrs = {
+    how_they_heard: f.get("how_they_heard") || "—",
+    company_size: f.get("company_size"),
+    estimated_budget: f.get("estimated_budget"),
+  };
+  if (p) {
+    Object.assign(p, { name: f.get("name"), company: f.get("company"), ok_to_contact: !!f.get("ok_to_contact") });
+    Object.assign(p.attributes, attrs);
+  } else {
+    p = { id: ++seq, email, name: f.get("name"), company: f.get("company"), role: "", ok_to_contact: !!f.get("ok_to_contact"), created_at: NOW, attributes: attrs };
+    state.people.push(p);
+  }
+  state.contacts.push({
+    id: ++seq, person_id: p.id, type: f.get("type"),
+    subject: (f.get("message") || "").slice(0, 48) + ((f.get("message")||"").length > 48 ? "…" : ""),
+    message: f.get("message"), source: "website", status: "new_lead", created_at: NOW,
+  });
+  e.target.reset();
+  $("#formSuccess").style.display = "block";
+  setTimeout(() => $("#formSuccess").style.display = "none", 5000);
+});
+
+/* ================= admin views ================= */
+let view = "leads";
+let search = "";
+
+document.querySelectorAll(".nav-item").forEach(b => b.addEventListener("click", () => {
+  view = b.dataset.view;
+  document.querySelectorAll(".nav-item").forEach(x => x.classList.toggle("active", x === b));
+  render();
+}));
+$("#searchInput").addEventListener("input", e => { search = e.target.value.toLowerCase(); renderContent(); });
+
+function render() {
+  $("#countLeads").textContent = state.contacts.filter(c => !["won","lost"].includes(c.status)).length;
+  $("#countPeople").textContent = state.people.length;
+  $("#countOrders").textContent = state.orders.length;
+  $("#countNews").textContent = state.people.filter(p => p.ok_to_contact).length;
+  const titles = { leads:"Leads", people:"People", orders:"Orders", newsletter:"Newsletter" };
+  const subs = {
+    leads: state.contacts.length + " inquiries · " + state.contacts.filter(c=>!["won","lost"].includes(c.status)).length + " open",
+    people: state.people.length + " contacts",
+    orders: money(state.orders.filter(o=>o.status==="paid").reduce((s,o)=>s+o.amount_cents,0)) + " collected",
+    newsletter: state.people.filter(p=>p.ok_to_contact).length + " subscribed",
+  };
+  $("#viewTitle").textContent = titles[view];
+  $("#viewSub").textContent = subs[view];
+  $("#searchBox").style.display = view === "people" ? "flex" : "none";
+  renderContent();
+}
+
+function renderContent() {
+  const c = $("#content");
+  if (view === "leads") c.innerHTML = boardHTML();
+  else if (view === "people") c.innerHTML = peopleHTML();
+  else if (view === "orders") c.innerHTML = ordersHTML();
+  else c.innerHTML = newsletterHTML();
+}
+
+function cardHTML(ct) {
+  const p = person(ct.person_id);
+  return `<div class="card" onclick="openContact(${ct.id})">
+    <div class="who">${esc(p.name)}</div>
+    <div class="co">${esc(p.company || p.email)}</div>
+    <div class="meta"><span class="badge ${TYPE_CLASS[ct.type]}">${TYPE_LABEL[ct.type]}</span><span class="ago">${ago(ct.created_at)}</span></div>
+  </div>`;
+}
+
+function boardHTML() {
+  return `<div class="board">` + STAGES.map(st => {
+    const cards = state.contacts.filter(c => c.status === st).sort((a,b) => b.created_at - a.created_at);
+    return `<div class="col">
+      <div class="col-head"><span class="dot" style="background:${STAGE_COLOR[st]}"></span>
+        <span class="name">${STAGE_LABEL[st]}</span><span class="n">${cards.length}</span></div>
+      <div class="col-body">${cards.map(cardHTML).join("") || `<div style="color:var(--ink-3);font-size:12px;padding:8px 4px">No inquiries</div>`}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function peopleHTML() {
+  const rows = state.people
+    .filter(p => !search || [p.name, p.email, p.company, p.attributes.how_they_heard].join(" ").toLowerCase().includes(search))
+    .sort((a,b) => b.created_at - a.created_at);
+  if (!rows.length) return `<div class="empty">No people match “${esc(search)}”.</div>`;
+  return `<table class="table"><thead><tr>
+      <th>Person</th><th>Company</th><th>How they heard</th><th>Company size</th><th>Budget</th><th>Newsletter</th>
+    </tr></thead><tbody>` +
+    rows.map(p => `<tr onclick="openPerson(${p.id})">
+      <td><div class="cell-person"><span class="avatar">${initials(p.name)}</span><div><div class="nm">${esc(p.name)}</div><div class="em">${esc(p.email)}</div></div></div></td>
+      <td>${esc(p.company || "—")}</td>
+      <td><span class="pill">${esc(p.attributes.how_they_heard)}</span></td>
+      <td><span class="pill">${esc(p.attributes.company_size)}</span></td>
+      <td><span class="pill">${esc(p.attributes.estimated_budget)}</span></td>
+      <td>${p.ok_to_contact ? '<span class="badge st-paid">Subscribed</span>' : '<span class="badge st-cancelled">No</span>'}</td>
+    </tr>`).join("") + `</tbody></table>`;
+}
+
+function ordersHTML() {
+  if (!state.orders.length) return `<div class="empty">No orders yet.</div>`;
+  return `<table class="table"><thead><tr><th>Product</th><th>Person</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>` +
+    state.orders.slice().sort((a,b)=>b.created_at-a.created_at).map(o => {
+      const p = person(o.person_id);
+      return `<tr onclick="openPerson(${p.id})">
+        <td style="font-weight:600">${esc(o.product_name)}</td>
+        <td>${esc(p.name)}</td>
+        <td class="money">${money(o.amount_cents)}</td>
+        <td><span class="badge st-${o.status}">${o.status}</span></td>
+        <td style="color:var(--ink-2)">${ago(o.created_at)}</td>
+      </tr>`;
+    }).join("") + `</tbody></table>`;
+}
+
+function newsletterHTML() {
+  const subs = state.people.filter(p => p.ok_to_contact).sort((a,b)=>b.created_at-a.created_at);
+  if (!subs.length) return `<div class="empty">Nobody has opted in yet.</div>`;
+  return `<table class="table"><thead><tr><th>Person</th><th>Company</th><th>Subscribed since</th></tr></thead><tbody>` +
+    subs.map(p => `<tr onclick="openPerson(${p.id})">
+      <td><div class="cell-person"><span class="avatar">${initials(p.name)}</span><div><div class="nm">${esc(p.name)}</div><div class="em">${esc(p.email)}</div></div></div></td>
+      <td>${esc(p.company || "—")}</td>
+      <td style="color:var(--ink-2)">${ago(p.created_at)}</td>
+    </tr>`).join("") + `</tbody></table>`;
+}
+
+/* ================= drawer ================= */
+function openDrawer(html) {
+  $("#drawer").innerHTML = html;
+  $("#drawer").classList.add("open");
+  $("#overlay").classList.add("open");
+}
+function closeDrawer() {
+  $("#drawer").classList.remove("open");
+  $("#overlay").classList.remove("open");
+}
+$("#overlay").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+window.openContact = function(id) {
+  const ct = state.contacts.find(c => c.id === id);
+  const p = person(ct.person_id);
+  const acts = state.activity.filter(a => a.contact_id === id).sort((a,b)=>b.created_at-a.created_at);
+  openDrawer(`
+    <div class="drawer-head">
+      <div class="drawer-title"><span class="avatar">${initials(p.name)}</span>
+        <div style="margin-left:12px"><h3>${esc(p.name)}</h3><div class="sub">${esc(p.company || "")} · ${esc(p.email)}</div></div></div>
+      <button class="icon-btn" onclick="closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="sect" style="margin-top:14px">
+        <a class="back-link" onclick="openPerson(${p.id})" style="cursor:pointer">View full contact record →</a>
+        <h4>Stage</h4>
+        <div class="stage-row">${STAGES.map(s =>
+          `<button class="stage-chip ${s} ${s===ct.status?"current":""}" onclick="moveStage(${ct.id}, '${s}')">${STAGE_LABEL[s]}</button>`).join("")}</div>
+      </div>
+      <div class="sect">
+        <h4>Inquiry</h4>
+        <div class="kv-grid">
+          <div class="k">Type</div><div class="v"><span class="badge ${TYPE_CLASS[ct.type]}">${TYPE_LABEL[ct.type]}</span></div>
+          <div class="k">Subject</div><div class="v">${esc(ct.subject)}</div>
+          <div class="k">Source</div><div class="v">${esc(ct.source)}</div>
+          <div class="k">Received</div><div class="v">${ago(ct.created_at)}</div>
+        </div>
+        <div class="msg-box" style="margin-top:12px">${esc(ct.message)}</div>
+      </div>
+      <div class="sect">
+        <h4>Attributes</h4>
+        <div class="kv-grid">
+          <div class="k">How they heard</div><div class="v">${esc(p.attributes.how_they_heard)}</div>
+          <div class="k">Company size</div><div class="v">${esc(p.attributes.company_size)}</div>
+          <div class="k">Budget</div><div class="v">${esc(p.attributes.estimated_budget)}</div>
+        </div>
+      </div>
+      <div class="sect">
+        <h4>Activity</h4>
+        ${acts.length ? `<div class="timeline">` + acts.map(a => `
+          <div class="tl-item"><strong>${STAGE_LABEL[a.from_status]}</strong> → <strong>${STAGE_LABEL[a.to_status]}</strong> by ${esc(a.actor)}
+            ${a.note ? `<div style="color:var(--ink-2)">“${esc(a.note)}”</div>` : ""}
+            <div class="when">${ago(a.created_at)}</div></div>`).join("") + `</div>`
+        : `<div style="color:var(--ink-3);font-size:12.5px">No status changes yet — this lead is untouched.</div>`}
+      </div>
+    </div>`);
+};
+
+window.moveStage = function(contactId, to) {
+  const ct = state.contacts.find(c => c.id === contactId);
+  if (ct.status === to) return;
+  const note = prompt(`Moving to “${STAGE_LABEL[to]}”. Add a note? (optional)`) ?? "";
+  state.activity.push({ id: ++seq, contact_id: ct.id, person_id: ct.person_id, from_status: ct.status, to_status: to, actor: "jasper", note, created_at: Date.now() });
+  ct.status = to;
+  toast(`${person(ct.person_id).name} → ${STAGE_LABEL[to]}`);
+  render();
+  openContact(ct.id);
+};
+
+window.openPerson = function(id) {
+  const p = person(id);
+  const inqs = state.contacts.filter(c => c.person_id === id).sort((a,b)=>b.created_at-a.created_at);
+  const ords = state.orders.filter(o => o.person_id === id).sort((a,b)=>b.created_at-a.created_at);
+  openDrawer(`
+    <div class="drawer-head">
+      <div class="drawer-title"><span class="avatar">${initials(p.name)}</span>
+        <div style="margin-left:12px"><h3>${esc(p.name)}</h3><div class="sub">${esc([p.role, p.company].filter(Boolean).join(" · "))}</div></div></div>
+      <button class="icon-btn" onclick="closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="sect" style="margin-top:14px">
+        <h4>Details</h4>
+        <div class="kv-grid">
+          <div class="k">Email</div><div class="v">${esc(p.email)}</div>
+          <div class="k">Company</div><div class="v">${esc(p.company || "—")}</div>
+          <div class="k">How they heard</div><div class="v">${esc(p.attributes.how_they_heard)}</div>
+          <div class="k">Company size</div><div class="v">${esc(p.attributes.company_size)}</div>
+          <div class="k">Budget</div><div class="v">${esc(p.attributes.estimated_budget)}</div>
+          <div class="k">Newsletter</div><div class="v">${p.ok_to_contact ? "Subscribed" : "Not subscribed"}</div>
+          <div class="k">First seen</div><div class="v">${ago(p.created_at)}</div>
+        </div>
+      </div>
+      <div class="sect">
+        <h4>Inquiries (${inqs.length})</h4>
+        ${inqs.map(c => `<div class="inq-row" onclick="openContact(${c.id})">
+          <div><div class="t">${esc(c.subject)}</div><div class="s">${TYPE_LABEL[c.type]} · ${ago(c.created_at)}</div></div>
+          <span class="badge" style="background:${STAGE_COLOR[c.status]}1a;color:${STAGE_COLOR[c.status]}">${STAGE_LABEL[c.status]}</span>
+        </div>`).join("") || `<div style="color:var(--ink-3);font-size:12.5px">No inquiries yet.</div>`}
+      </div>
+      <div class="sect">
+        <h4>Orders</h4>
+        ${ords.map(o => `<div class="order-row"><span>${esc(o.product_name)}</span>
+          <span><span class="badge st-${o.status}" style="margin-right:8px">${o.status}</span><span class="money">${money(o.amount_cents)}</span></span></div>`).join("")
+          || `<div style="color:var(--ink-3);font-size:12.5px;margin-bottom:4px">No orders yet.</div>`}
+        <div class="add-order">
+          <input id="orderName" placeholder="Product or engagement name">
+          <input id="orderAmt" class="amt" placeholder="$" inputmode="numeric">
+          <button class="btn-small" onclick="addOrder(${p.id})">Add</button>
+        </div>
+      </div>
+    </div>`);
+};
+
+window.addOrder = function(personId) {
+  const name = $("#orderName").value.trim();
+  const amt = parseFloat($("#orderAmt").value.replace(/[^0-9.]/g, ""));
+  if (!name || !amt) { toast("Order needs a name and an amount"); return; }
+  state.orders.push({ id: ++seq, person_id: personId, product_name: name, amount_cents: Math.round(amt*100), currency: "USD", status: "pending", created_at: Date.now() });
+  toast("Order added — pending");
+  render();
+  openPerson(personId);
+};
+
+window.closeDrawer = closeDrawer;
+render();
+</script>
+</body>
+</html>

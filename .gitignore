@@ -19,3 +19,5 @@ working_files/
 *.ai
 *.mov
 *.mp4
+.vercel
+.env*
