@@ -132,7 +132,10 @@ export async function submitContact(
 
       const { error: emailError } = await resend.emails.send({
         from: "onboarding@resend.dev",
-        to: "jasper.le@edge8.ai",
+        // Resend sandbox mode can only deliver to the account's own verified
+        // email (the address behind RESEND_API_KEY's signup), not
+        // jasper.le@edge8.ai — see CLAUDE.md's Project Catalog.
+        to: "dinhngoc123@gmail.com",
         subject: `New inquiry: ${name} (${TYPE_LABELS[type] ?? type})`,
         text: [
           `Name: ${name}`,
