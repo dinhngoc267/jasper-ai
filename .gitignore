@@ -1,0 +1,21 @@
+# dependencies & build
+website/node_modules/
+website/.next/
+website/out/
+
+# env & secrets — never commit
+website/.env.local
+.env
+.env.local
+.env.*.local
+
+# local-only
+working_files/
+.claude/settings.local.json
+.DS_Store
+
+# heavy media & design sources
+*.psd
+*.ai
+*.mov
+*.mp4
