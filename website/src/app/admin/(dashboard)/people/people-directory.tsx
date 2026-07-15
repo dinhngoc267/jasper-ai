@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import {
+  STATUS_COLORS,
   STATUS_LABELS,
   TYPE_LABELS,
   formatDate,
@@ -17,7 +18,11 @@ import {
   type PersonOrderRow,
   type PersonRow,
 } from "@/lib/people";
-import { formatAmount, ORDER_STATUS_LABELS } from "@/lib/orders";
+import {
+  formatAmount,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_STYLES,
+} from "@/lib/orders";
 import { fieldClass } from "@/lib/ui";
 import { Section, KVGrid } from "../kv";
 
@@ -107,10 +112,19 @@ export function PeopleDirectory({
                   className="cursor-pointer border-b border-[var(--rule)] transition last:border-0 hover:bg-[var(--cream)]/30"
                 >
                   <td className="px-4 py-3">
-                    <p className="font-medium text-[var(--ink)]">
-                      {person.name || "—"}
-                    </p>
-                    <p className="text-xs text-[var(--gray-2)]">{person.email}</p>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[var(--ink-soft)] text-[13px] font-semibold text-white">
+                        {initials(person.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-[var(--ink)]">
+                          {person.name || "—"}
+                        </p>
+                        <p className="truncate text-xs text-[var(--gray-2)]">
+                          {person.email}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-[var(--ink)]">
                     {person.company || "—"}
@@ -239,7 +253,11 @@ function PersonDrawer({
                           <span className="truncate text-sm font-semibold text-[var(--ink)]">
                             {subjectOrFallback(contact)}
                           </span>
-                          <span className="shrink-0 rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">
+                          <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-[var(--ink-soft)]">
+                            <span
+                              className="h-[7px] w-[7px] rounded-full"
+                              style={{ background: STATUS_COLORS[contact.status] }}
+                            />
                             {STATUS_LABELS[contact.status] ?? contact.status}
                           </span>
                         </div>
@@ -271,25 +289,31 @@ function PersonDrawer({
                   <p className="text-xs text-[var(--gray-2)]">No orders yet.</p>
                 ) : (
                   <div className="space-y-2">
-                    {orders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-[var(--rule)] px-3 py-2.5"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-[var(--ink)]">
-                            {order.product_name}
+                    {orders.map((order) => {
+                      const style = ORDER_STATUS_STYLES[order.status];
+                      return (
+                        <div
+                          key={order.id}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-[var(--rule)] px-3 py-2.5"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-[var(--ink)]">
+                              {order.product_name}
+                            </span>
+                            <span className="block text-[11px] text-[var(--gray-2)]">
+                              {formatAmount(order.amount_cents, order.currency)} ·{" "}
+                              {timeAgo(order.created_at)}
+                            </span>
                           </span>
-                          <span className="block text-[11px] text-[var(--gray-2)]">
-                            {formatAmount(order.amount_cents, order.currency)} ·{" "}
-                            {timeAgo(order.created_at)}
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                            style={{ background: style?.bg, color: style?.color }}
+                          >
+                            {ORDER_STATUS_LABELS[order.status] ?? order.status}
                           </span>
-                        </span>
-                        <span className="shrink-0 rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">
-                          {ORDER_STATUS_LABELS[order.status] ?? order.status}
-                        </span>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </Section>

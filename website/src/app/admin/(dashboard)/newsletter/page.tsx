@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/leads";
+import { formatDate, initials } from "@/lib/leads";
 
 // Render on every request — never at build time (there is no database during
 // `next build`). Same pattern as the leads/people/orders pages.
@@ -81,8 +81,15 @@ export default async function AdminNewsletterPage() {
                   key={person.id}
                   className="border-b border-[var(--rule)] last:border-0"
                 >
-                  <td className="px-4 py-3 font-medium text-[var(--ink)]">
-                    {person.name || "—"}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ink-soft)] text-xs font-semibold text-white">
+                        {initials(person.name)}
+                      </span>
+                      <span className="font-medium text-[var(--ink)]">
+                        {person.name || "—"}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-[var(--ink)]">{person.email}</td>
                   <td className="px-4 py-3 text-[var(--gray-2)]">

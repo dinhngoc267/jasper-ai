@@ -14,8 +14,58 @@ export function ContactForm() {
     initialState
   );
 
+  if (state.success) {
+    return (
+      <div className="rounded-3xl bg-[var(--paper)] px-8 py-14 text-center sm:px-11">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--green-soft)]">
+          <svg
+            width="26"
+            height="20"
+            viewBox="0 0 26 20"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 10.5L9.5 18L24 2"
+              stroke="var(--green)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <h3 className="text-[28px] font-semibold tracking-tight text-[var(--ink)]">
+          Got it — thanks.
+        </h3>
+        <p className="mx-auto mt-3 max-w-sm text-[17px] leading-relaxed text-[var(--gray-2)]">
+          Your inquiry landed in the pipeline. I&apos;ll be in touch within
+          one business day.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/admin"
+            className="rounded-full bg-[var(--blue)] px-[22px] py-3 text-[15px] font-medium text-white transition hover:opacity-90"
+          >
+            See it land in admin ›
+          </a>
+          <button
+            type="button"
+            data-testid="contact-submit-another"
+            onClick={() => window.location.reload()}
+            className="rounded-full border border-[var(--rule)] px-[22px] py-3 text-[15px] font-medium text-[var(--ink)] transition hover:border-[var(--gray-3)]"
+          >
+            Submit another
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form action={formAction} className="mx-auto w-full max-w-xl space-y-5">
+    <form
+      action={formAction}
+      className="mx-auto w-full max-w-xl space-y-5 rounded-3xl bg-[var(--paper)] p-9"
+    >
       {/* Name + Email */}
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -173,19 +223,11 @@ export function ContactForm() {
         type="submit"
         data-testid="contact-submit"
         disabled={pending}
-        className="w-full rounded-lg bg-[var(--blue)] px-6 py-3.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+        className="w-full rounded-full bg-[var(--blue)] px-6 py-3.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Sending…" : "Send inquiry"}
       </button>
 
-      {state.success && (
-        <p
-          data-testid="contact-success"
-          className="rounded-lg bg-[var(--blue-soft)] px-4 py-3 text-center font-medium text-[var(--blue)]"
-        >
-          Inquiry sent — I&apos;ll reply within one business day.
-        </p>
-      )}
       {state.error && (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-center font-medium text-red-600">
           {state.error}

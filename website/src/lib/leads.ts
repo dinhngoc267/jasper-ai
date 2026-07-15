@@ -66,6 +66,18 @@ export const STATUS_LABELS: Record<string, string> = {
   lost: "Lost",
 };
 
+/** Per-status accent color (CSS var reference), matching the design mock's
+ * status dot/pill treatment — new_lead=blue, contacted=purple,
+ * discovery_call=teal, proposal=amber, won=green, lost=gray. */
+export const STATUS_COLORS: Record<string, string> = {
+  new_lead: "var(--blue)",
+  contacted: "var(--purple)",
+  discovery_call: "var(--teal)",
+  proposal: "var(--amber)",
+  won: "var(--green)",
+  lost: "var(--gray-1)",
+};
+
 /** Fixed left-to-right column order for the Kanban board. */
 export const STATUS_ORDER = [
   "new_lead",

@@ -2,10 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import {
+  STATUS_COLORS,
   STATUS_LABELS,
   STATUS_ORDER,
   TYPE_LABELS,
-  isStale,
   timeAgo,
   type ActivityLogRow,
   type LeadRow,
@@ -13,6 +13,16 @@ import {
 } from "@/lib/leads";
 import { updateLeadStatus } from "@/app/actions/leads";
 import { LeadDrawer } from "./lead-drawer";
+
+const FILTERS: { key: string; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "new_lead", label: "New" },
+  { key: "active", label: "Active" },
+  { key: "won", label: "Won" },
+  { key: "lost", label: "Lost" },
+];
+
+const ACTIVE_SET: Status[] = ["contacted", "discovery_call", "proposal"];
 
 export function LeadsBoard({
   leads: initialLeads,
@@ -23,6 +33,7 @@ export function LeadsBoard({
 }) {
   const [leads, setLeads] = useState<LeadRow[]>(initialLeads);
   const [activity, setActivity] = useState<ActivityLogRow[]>(initialActivity);
+  const [filter, setFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [cachedLead, setCachedLead] = useState<LeadRow | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,27 +53,6 @@ export function LeadsBoard({
     setPrevCurrentLead(currentLead);
     if (currentLead) setCachedLead(currentLead);
   }
-
-  const columns = useMemo(() => {
-    const grouped: Record<Status, LeadRow[]> = {
-      new_lead: [],
-      contacted: [],
-      discovery_call: [],
-      proposal: [],
-      won: [],
-      lost: [],
-    };
-    for (const lead of leads) {
-      const status = (lead.status as Status) in grouped ? (lead.status as Status) : null;
-      if (status) grouped[status].push(lead);
-    }
-    for (const status of STATUS_ORDER) {
-      grouped[status].sort(
-        (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
-      );
-    }
-    return grouped;
-  }, [leads]);
 
   const activityByContact = useMemo(() => {
     const map: Record<string, ActivityLogRow[]> = {};
@@ -85,6 +75,17 @@ export function LeadsBoard({
     }
     return map;
   }, [leads]);
+
+  const filtered = useMemo(() => {
+    const matchesFilter = (lead: LeadRow) => {
+      if (filter === "all") return true;
+      if (filter === "active") return ACTIVE_SET.includes(lead.status as Status);
+      return lead.status === filter;
+    };
+    return [...leads]
+      .filter(matchesFilter)
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  }, [leads, filter]);
 
   function moveLead(contactId: string, newStatus: Status, note: string) {
     const lead = leads.find((l) => l.id === contactId);
@@ -134,16 +135,102 @@ export function LeadsBoard({
         </p>
       )}
 
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {STATUS_ORDER.map((status) => (
-          <Column
-            key={status}
-            status={status}
-            leads={columns[status]}
-            activityByContact={activityByContact}
-            onOpen={setOpenId}
-          />
-        ))}
+      <div className="mb-[18px] flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`rounded-full border px-[15px] py-[7px] text-[13px] font-medium transition ${
+                active
+                  ? "border-[var(--ink)] bg-[var(--ink)] text-white"
+                  : "border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] hover:border-[var(--gray-3)]"
+              }`}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="overflow-hidden overflow-x-auto rounded-2xl border border-[var(--rule)] bg-[var(--paper)]">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-[var(--rule)] text-[11.5px] font-semibold tracking-wider text-[var(--gray-1)] uppercase">
+              <th className="px-[22px] py-[13px]">Name</th>
+              <th className="px-[22px] py-[13px]">Type</th>
+              <th className="px-[22px] py-[13px]">Received</th>
+              <th className="px-[22px] py-[13px]">Budget</th>
+              <th className="px-[22px] py-[13px]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-[22px] py-10 text-center text-[var(--gray-2)]">
+                  No leads in this view.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((lead) => {
+                const person = lead.people;
+                return (
+                  <tr
+                    key={lead.id}
+                    className="border-b border-[var(--rule)] last:border-0"
+                  >
+                    <td className="px-[22px] py-3.5 align-middle">
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(lead.id)}
+                        className="block max-w-[240px] text-left"
+                      >
+                        <span className="block truncate text-[14.5px] font-medium text-[var(--ink)]">
+                          {person?.name || "—"}
+                        </span>
+                        <span className="block truncate text-[12.5px] text-[var(--gray-1)]">
+                          {person?.company || person?.email || "—"}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="px-[22px] py-3.5 align-middle text-[13px] text-[var(--ink)]">
+                      {TYPE_LABELS[lead.type] ?? lead.type}
+                    </td>
+                    <td className="px-[22px] py-3.5 align-middle text-[13px] text-[var(--gray-2)]">
+                      {timeAgo(lead.created_at)}
+                    </td>
+                    <td className="px-[22px] py-3.5 align-middle text-[13px] text-[var(--gray-2)]">
+                      {person?.attributes?.estimated_budget || "—"}
+                    </td>
+                    <td className="px-[22px] py-3.5 align-middle">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: STATUS_COLORS[lead.status] }}
+                        />
+                        <select
+                          value={lead.status}
+                          onChange={(e) =>
+                            moveLead(lead.id, e.target.value as Status, "")
+                          }
+                          className="cursor-pointer appearance-none rounded-lg border border-[var(--rule)] bg-[var(--paper)] px-2 py-1.5 text-[12.5px] font-medium text-[var(--ink)]"
+                        >
+                          {STATUS_ORDER.map((status) => (
+                            <option key={status} value={status}>
+                              {STATUS_LABELS[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       <LeadDrawer
@@ -164,89 +251,5 @@ export function LeadsBoard({
         }}
       />
     </div>
-  );
-}
-
-function Column({
-  status,
-  leads,
-  activityByContact,
-  onOpen,
-}: {
-  status: Status;
-  leads: LeadRow[];
-  activityByContact: Record<string, ActivityLogRow[]>;
-  onOpen: (contactId: string) => void;
-}) {
-  return (
-    <div className="flex w-[248px] shrink-0 flex-col">
-      <div className="mb-2.5 flex items-center justify-between px-1">
-        <h2 className="text-xs font-semibold text-[var(--ink)]">
-          {STATUS_LABELS[status]}
-        </h2>
-        <span className="rounded-full bg-[var(--rule)] px-2 py-0.5 text-[11px] font-medium text-[var(--gray-2)]">
-          {leads.length}
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2">
-        {leads.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-[var(--rule)] px-3 py-5 text-center text-[11px] text-[var(--gray-2)]">
-            No inquiries
-          </p>
-        ) : (
-          leads.map((lead) => (
-            <LeadCard
-              key={lead.id}
-              lead={lead}
-              stale={isStale(lead, activityByContact[lead.id] ?? [])}
-              onOpen={() => onOpen(lead.id)}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function LeadCard({
-  lead,
-  stale,
-  onOpen,
-}: {
-  lead: LeadRow;
-  stale: boolean;
-  onOpen: () => void;
-}) {
-  const person = lead.people;
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`rounded-xl border border-[var(--rule)] bg-[var(--paper)] p-3 text-left transition hover:border-[var(--gray-3)] hover:shadow-sm ${
-        stale ? "shadow-[inset_3px_0_0_0_var(--amber)]" : ""
-      }`}
-    >
-      <p className="truncate text-sm font-semibold text-[var(--ink)]">
-        {person?.name || "—"}
-      </p>
-      <p className="mt-0.5 truncate text-xs text-[var(--gray-2)]">
-        {person?.company || person?.email || "—"}
-      </p>
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">
-          {TYPE_LABELS[lead.type] ?? lead.type}
-        </span>
-        <span className="shrink-0 text-[11px] text-[var(--gray-1)]">
-          {timeAgo(lead.created_at)}
-        </span>
-      </div>
-      {stale && (
-        <p className="mt-2 text-[11px] font-semibold text-[var(--amber)]">
-          ⏳ Needs follow-up
-        </p>
-      )}
-    </button>
   );
 }

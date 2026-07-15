@@ -106,56 +106,80 @@ export default function Home() {
   return (
     <main className="flex-1 font-sans text-[var(--ink)]">
       {/* NAV */}
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <div className="text-lg font-bold tracking-tight">
-          Jasper<span className="text-[var(--blue)]"> AI</span>
-        </div>
-        <div className="hidden gap-6 text-sm text-[var(--gray-2)] sm:flex">
-          <a href="#why" className="transition hover:text-[var(--ink)]">
-            Why
-          </a>
-          <a href="#how" className="transition hover:text-[var(--ink)]">
-            How it works
-          </a>
-          <a href="#faq" className="transition hover:text-[var(--ink)]">
-            FAQ
-          </a>
-          <a href="#contact" className="transition hover:text-[var(--ink)]">
-            Contact
-          </a>
-        </div>
-      </nav>
+      <div className="sticky top-0 z-20 border-b border-[var(--rule)] bg-white/72 backdrop-blur-xl backdrop-saturate-150">
+        <nav className="mx-auto flex h-[52px] max-w-5xl items-center justify-between px-6">
+          <div className="text-[19px] font-semibold tracking-tight">
+            Jasper<span className="text-[var(--gray-1)]">·</span>AI
+          </div>
+          <div className="flex items-center gap-6 text-[13px] text-[var(--ink)]">
+            <a href="#why" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              Why
+            </a>
+            <a href="#how" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              How it works
+            </a>
+            <a href="#faq" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              FAQ
+            </a>
+            <a href="#contact" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              Contact
+            </a>
+            <a
+              href="/admin"
+              className="rounded-full border border-[var(--rule)] px-3 py-[5px] text-xs font-medium text-[var(--ink)] transition hover:border-[var(--gray-3)]"
+            >
+              Admin
+            </a>
+          </div>
+        </nav>
+      </div>
 
       {/* HERO */}
-      <section className="mx-auto max-w-5xl px-6 pt-16 pb-10 text-center sm:pt-24">
-        <h1 className="text-5xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
-          AI systems that ship.
+      <section className="mx-auto max-w-3xl px-6 pt-24 pb-16 text-center">
+        <div className="mb-5 text-[13px] font-semibold tracking-tight text-[var(--blue)]">
+          AI development · consulting · retainers
+        </div>
+        <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight sm:text-[66px]">
+          AI systems,
+          <br />
+          built to spec.
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-[var(--gray-2)]">
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--gray-2)] sm:text-xl">
           Custom AI agents, RAG systems, and LLM applications — designed, built,
           and maintained by an engineer who&apos;s done it before.
         </p>
-        <div className="mt-9">
+        <div className="mt-9 flex items-center justify-center gap-3.5">
           <a
             href="#contact"
-            className="inline-block rounded-full bg-[var(--blue)] px-8 py-3.5 font-semibold text-white transition hover:opacity-90"
+            className="inline-block rounded-full bg-[var(--blue)] px-[26px] py-[13px] text-base font-medium text-white transition hover:opacity-90"
           >
             Start a conversation
+          </a>
+          <a
+            href="#services"
+            className="inline-block px-2 py-[13px] text-base font-medium text-[var(--blue)]"
+          >
+            See what I build ›
           </a>
         </div>
       </section>
 
       {/* SERVICES */}
-      <section className="mx-auto mt-8 grid max-w-5xl gap-4 px-6 md:grid-cols-3">
-        {SERVICES.map((s) => (
-          <div
-            key={s.title}
-            className="rounded-2xl bg-[#F8FAFC] p-6 text-left"
-          >
-            <h3 className="text-base font-semibold">{s.title}</h3>
-            <p className="mt-1.5 text-sm text-[var(--gray-2)]">{s.text}</p>
-          </div>
-        ))}
+      <section
+        id="services"
+        className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-[88px]"
+      >
+        <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
+          {SERVICES.map((s) => (
+            <div
+              key={s.title}
+              className="rounded-2xl bg-[var(--paper)] p-6 text-left"
+            >
+              <h3 className="text-base font-semibold">{s.title}</h3>
+              <p className="mt-1.5 text-sm text-[var(--gray-2)]">{s.text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* WHY — problem / positioning */}
@@ -251,15 +275,17 @@ export default function Home() {
       {/* CONTACT */}
       <section
         id="contact"
-        className="mx-auto mt-20 mb-24 max-w-5xl px-6"
+        className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-[88px]"
       >
-        <h2 className="text-center text-3xl font-bold tracking-tight">
-          Start a conversation
-        </h2>
-        <p className="mt-2 mb-8 text-center text-[var(--gray-2)]">
-          Tell me what you&apos;re building. I reply within one business day.
-        </p>
-        <ContactForm />
+        <div className="mx-auto max-w-2xl">
+          <h2 className="text-center text-4xl font-semibold tracking-tight">
+            Start a conversation
+          </h2>
+          <p className="mt-2.5 mb-10 text-center text-lg text-[var(--gray-2)]">
+            Tell me what you&apos;re building. I reply within one business day.
+          </p>
+          <ContactForm />
+        </div>
       </section>
     </main>
   );
