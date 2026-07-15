@@ -187,8 +187,8 @@ export default function Home() {
       </section>
 
       {/* WORK — shipped, not slideware */}
-      <section id="work" className="mx-auto mt-24 max-w-5xl scroll-mt-[52px] px-6">
-        <div className="grid items-center gap-14 md:grid-cols-2">
+      <section id="work" className="scroll-mt-[52px] bg-[var(--paper)] px-6 py-24">
+        <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-2">
           <div>
             <h2 className="text-4xl font-semibold leading-tight tracking-tight">
               Shipped, not slideware.
@@ -223,92 +223,100 @@ export default function Home() {
       </section>
 
       {/* WHY — problem / positioning */}
-      <section id="why" className="mx-auto mt-24 max-w-5xl px-6">
-        <h2 className="text-center text-3xl font-bold tracking-tight">
-          You&apos;ve probably seen AI projects stall.
-        </h2>
-        <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
-          Most AI initiatives die between the demo and production. Here&apos;s
-          how this engagement is built differently.
-        </p>
-        <div className="grid gap-4 md:grid-cols-3">
-          {PAIN_POINTS.map((p) => (
-            <div
-              key={p.q}
-              className="rounded-2xl border border-[var(--rule)] p-6"
-            >
-              <div className="text-sm font-semibold leading-snug">{p.q}</div>
-              <div className="mt-2 text-sm text-[var(--gray-2)]">{p.a}</div>
-            </div>
-          ))}
+      <section id="why" className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight">
+            You&apos;ve probably seen AI projects stall.
+          </h2>
+          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
+            Most AI initiatives die between the demo and production. Here&apos;s
+            how this engagement is built differently.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {PAIN_POINTS.map((p) => (
+              <div
+                key={p.q}
+                className="rounded-2xl bg-[var(--paper)] p-6"
+              >
+                <div className="text-sm font-semibold leading-snug">{p.q}</div>
+                <div className="mt-2 text-sm text-[var(--gray-2)]">{p.a}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="mx-auto mt-24 max-w-5xl px-6">
-        <h2 className="text-center text-3xl font-bold tracking-tight">
-          How it works
-        </h2>
-        <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
-          A simple path from first message to shipped system — you always know
-          which step you&apos;re on.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s) => (
-            <div key={s.n} className="rounded-2xl bg-[#F8FAFC] p-6">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--blue)] text-xs font-bold text-white">
-                {s.n}
+      <section id="how" className="scroll-mt-[52px] bg-[var(--paper)] px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight">
+            How it works
+          </h2>
+          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
+            A simple path from first message to shipped system — you always know
+            which step you&apos;re on.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((s) => (
+              <div key={s.n} className="rounded-2xl bg-[var(--cream)] p-6">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--blue)] text-xs font-bold text-white">
+                  {s.n}
+                </div>
+                <h3 className="mt-3 text-sm font-semibold">{s.title}</h3>
+                <p className="mt-1 text-sm text-[var(--gray-2)]">{s.text}</p>
               </div>
-              <h3 className="mt-3 text-sm font-semibold">{s.title}</h3>
-              <p className="mt-1 text-sm text-[var(--gray-2)]">{s.text}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="mx-auto mt-24 max-w-5xl px-6">
-        <h2 className="text-center text-3xl font-bold tracking-tight">
-          Common questions
-        </h2>
-        <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
-          If yours isn&apos;t here, send it through the form — that&apos;s what
-          &ldquo;General Inquiry&rdquo; is for.
-        </p>
-        <div className="mx-auto max-w-2xl">
-          {FAQS.map((f) => (
-            <details
-              key={f.q}
-              className="group border-b border-[var(--rule)]"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
-                {f.q}
-                <span className="ml-4 text-lg font-normal text-[var(--gray-1)] transition group-open:rotate-45">
-                  +
-                </span>
-              </summary>
-              <p className="pb-4 text-sm text-[var(--gray-2)]">{f.a}</p>
-            </details>
-          ))}
+      <section id="faq" className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight">
+            Common questions
+          </h2>
+          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
+            If yours isn&apos;t here, send it through the form — that&apos;s what
+            &ldquo;General Inquiry&rdquo; is for.
+          </p>
+          <div className="mx-auto max-w-2xl">
+            {FAQS.map((f) => (
+              <details
+                key={f.q}
+                className="group border-b border-[var(--rule)]"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <span className="ml-4 text-lg font-normal text-[var(--gray-1)] transition group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="pb-4 text-sm text-[var(--gray-2)]">{f.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* CTA BAND */}
-      <section className="mx-auto mt-24 max-w-5xl px-6">
-        <div className="rounded-3xl bg-[var(--ink)] px-8 py-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Ready when you are.
-          </h2>
-          <p className="mx-auto mt-2 mb-6 max-w-md text-[var(--gray-3)]">
-            Tell me what you&apos;re trying to build. Worst case, you leave the
-            discovery call knowing what not to build.
-          </p>
-          <a
-            href="#contact"
-            className="inline-block rounded-full bg-white px-7 py-3 font-semibold text-[var(--ink)] transition hover:opacity-90"
-          >
-            Start a conversation
-          </a>
+      <section className="bg-[var(--paper)] px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-3xl bg-[var(--ink)] px-8 py-12 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white">
+              Ready when you are.
+            </h2>
+            <p className="mx-auto mt-2 mb-6 max-w-md text-[var(--gray-3)]">
+              Tell me what you&apos;re trying to build. Worst case, you leave the
+              discovery call knowing what not to build.
+            </p>
+            <a
+              href="#contact"
+              className="inline-block rounded-full bg-white px-7 py-3 font-semibold text-[var(--ink)] transition hover:opacity-90"
+            >
+              Start a conversation
+            </a>
+          </div>
         </div>
       </section>
 
