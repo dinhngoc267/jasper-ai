@@ -1,6 +1,8 @@
 "use server";
 
+import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { TYPE_LABELS } from "@/lib/leads";
 
 export type ContactState = {
   success: boolean;
@@ -114,6 +116,48 @@ export async function submitContact(
     });
 
     if (contactError) throw contactError;
+
+    // --- Best-effort internal notification email (never blocks the submit) ---
+    // Visitor-facing confirmation email is deliberately deferred until
+    // jasper-ai.com is bought and verified as a Resend sending domain — see
+    // CLAUDE.md's Project Catalog for status.
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const adminUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}/admin`
+        : "/admin";
+      const attributeLines = Object.entries(attributes)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\n") || "(none provided)";
+
+      const { error: emailError } = await resend.emails.send({
+        from: "onboarding@resend.dev",
+        // Resend sandbox mode can only deliver to the account's own verified
+        // email — see CLAUDE.md's Project Catalog for the domain-verification
+        // status that will lift this restriction.
+        to: "jasper.le@edge8.ai",
+        subject: `New inquiry: ${name} (${TYPE_LABELS[type] ?? type})`,
+        text: [
+          `Name: ${name}`,
+          `Email: ${email}`,
+          `Type: ${TYPE_LABELS[type] ?? type}`,
+          "",
+          "Message:",
+          message,
+          "",
+          "Attributes:",
+          attributeLines,
+          "",
+          `View in admin: ${adminUrl}`,
+        ].join("\n"),
+      });
+      if (emailError) throw emailError;
+    } catch (emailErr) {
+      console.error(
+        "[contact] notification email failed (submission still succeeded):",
+        emailErr
+      );
+    }
 
     return { success: true };
   } catch (err) {
