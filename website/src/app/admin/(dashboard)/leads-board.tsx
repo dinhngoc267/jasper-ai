@@ -27,15 +27,28 @@ const ACTIVE_SET: Status[] = ["contacted", "discovery_call", "proposal"];
 export function LeadsBoard({
   leads: initialLeads,
   activity: initialActivity,
+  initialOpenId = null,
 }: {
   leads: LeadRow[];
   activity: ActivityLogRow[];
+  /** Optionally open a lead's drawer on mount — used by the dashboard's
+   * "needs attention" table, which deep-links here via `?lead=<contactId>`. */
+  initialOpenId?: string | null;
 }) {
+  // A valid deep-linked lead (`?lead=<id>`) opens its drawer on mount. We seed
+  // both `openId` AND `cachedLead` from it: the cache-setting branch below only
+  // runs on a *change*, so without seeding cachedLead the drawer would open
+  // blank on the very first render.
+  const deepLinkedLead =
+    (initialOpenId && initialLeads.find((l) => l.id === initialOpenId)) || null;
+
   const [leads, setLeads] = useState<LeadRow[]>(initialLeads);
   const [activity, setActivity] = useState<ActivityLogRow[]>(initialActivity);
   const [filter, setFilter] = useState("all");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [cachedLead, setCachedLead] = useState<LeadRow | null>(null);
+  const [openId, setOpenId] = useState<string | null>(
+    deepLinkedLead ? deepLinkedLead.id : null
+  );
+  const [cachedLead, setCachedLead] = useState<LeadRow | null>(deepLinkedLead);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 

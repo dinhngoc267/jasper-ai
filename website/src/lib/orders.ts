@@ -47,6 +47,20 @@ export const ORDER_STATUS_STYLES: Record<
   cancelled: { bg: "var(--red-soft)", color: "#c0392b" },
 };
 
+/** Case-insensitive substring match across the buyer's name/email and the
+ * product name — the Orders table's client-side search, mirroring
+ * `matchesSearch` in `@/lib/people`. */
+export function matchesOrderSearch(
+  order: Pick<OrderRow, "product_name" | "people">,
+  query: string
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return [order.people?.name, order.people?.email, order.product_name]
+    .filter((field): field is string => Boolean(field))
+    .some((field) => field.toLowerCase().includes(q));
+}
+
 /** `amount_cents` + `currency` -> "$1,200.00". Falls back to a plain
  * cents-based display for currencies `Intl.NumberFormat` doesn't recognize. */
 export function formatAmount(amountCents: number, currency: string): string {

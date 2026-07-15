@@ -5,20 +5,20 @@ import { usePathname } from "next/navigation";
 import { LogoutButton } from "../logout-button";
 
 const LINKS = [
-  { href: "/admin", label: "Leads", dot: "var(--blue)" },
-  { href: "/admin/people", label: "People", dot: "var(--purple)" },
+  { href: "/admin", label: "Dashboard", dot: "var(--ink)" },
+  { href: "/admin/leads", label: "Leads", dot: "var(--blue)" },
   { href: "/admin/orders", label: "Orders", dot: "var(--green)" },
+  { href: "/admin/people", label: "People", dot: "var(--purple)" },
   { href: "/admin/newsletter", label: "Newsletter", dot: "var(--amber)" },
 ];
 
 /**
- * The admin sidebar shell — logo badge, nav links (colored dot + label +
- * badge count), "view public site" link, and the operator footer. Client
- * component only because it needs `usePathname` to highlight the active
- * link and render the logout button; the page content it wraps stays
- * Server Components.
+ * The admin sidebar shell — logo badge, nav links (colored dot + label),
+ * "view public site" link, and the operator footer. Client component only
+ * because it needs `usePathname` to highlight the active link and render the
+ * logout button; the page content it wraps stays Server Components.
  */
-export function Sidebar({ newLeadCount }: { newLeadCount: number }) {
+export function Sidebar() {
   const pathname = usePathname();
 
   return (
@@ -38,29 +38,21 @@ export function Sidebar({ newLeadCount }: { newLeadCount: number }) {
             link.href === "/admin"
               ? pathname === "/admin"
               : pathname.startsWith(link.href);
-          const badge = link.href === "/admin" ? newLeadCount : 0;
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`flex items-center justify-between rounded-[9px] px-3 py-2 text-sm transition ${
+              className={`flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-sm transition ${
                 isActive
                   ? "bg-[var(--cream)] font-semibold text-[var(--ink)]"
                   : "font-medium text-[var(--ink-soft)] hover:bg-[var(--cream)]/60"
               }`}
             >
-              <span className="flex items-center gap-2.5">
-                <span
-                  className="h-[7px] w-[7px] shrink-0 rounded-[2px]"
-                  style={{ background: link.dot }}
-                />
-                {link.label}
-              </span>
-              {badge > 0 && (
-                <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-[var(--blue)] px-1.5 text-[11px] font-semibold text-white">
-                  {badge}
-                </span>
-              )}
+              <span
+                className="h-[7px] w-[7px] shrink-0 rounded-[2px]"
+                style={{ background: link.dot }}
+              />
+              {link.label}
             </Link>
           );
         })}

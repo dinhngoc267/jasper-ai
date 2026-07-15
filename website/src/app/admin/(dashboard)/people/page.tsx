@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import type { PersonContactRow, PersonOrderRow, PersonRow } from "@/lib/people";
-import type { ActivityLogRow } from "@/lib/leads";
+import type { PersonRow } from "@/lib/people";
+import { firstParam, parsePage, sanitizeSearch } from "@/lib/search";
+import { ListToolbar } from "../list-toolbar";
+import { PAGE_SIZE, Pagination } from "../pagination";
 import { PeopleDirectory } from "./people-directory";
 
 // Render on every request — never at build time (there is no database during
@@ -11,67 +13,73 @@ export const metadata = {
   title: "People — Jasper AI Admin",
 };
 
-/** Fetch everything the People directory (and its per-person drawer) needs:
- * every person, every inquiry, every status change, and every order.
- * Returns null (not throws) if the DB is unreachable, mirroring the leads
- * page's fallback behavior. */
-async function fetchDirectory(): Promise<{
-  people: PersonRow[];
-  contacts: PersonContactRow[];
-  activity: ActivityLogRow[];
-  orders: PersonOrderRow[];
-} | null> {
+type PeopleResult = { rows: PersonRow[]; total: number };
+
+/**
+ * Fetch ONE page of people, newest-first, with search (name/email/company) and
+ * the newsletter-segment filter applied in the query. Returns null (not
+ * throws) if the DB is unreachable.
+ *
+ * Unlike before, this no longer bulk-loads contacts / activity_log / orders —
+ * the per-person drawer fetches those lazily via the `getPersonDetail` server
+ * action when opened, so the list only ever pulls the current page of people.
+ */
+async function fetchPeople({
+  q,
+  segment,
+  page,
+}: {
+  q: string;
+  segment: string;
+  page: number;
+}): Promise<PeopleResult | null> {
   try {
     const supabase = getSupabaseAdmin();
+    const term = sanitizeSearch(q);
 
-    const [peopleRes, contactsRes, activityRes, ordersRes] = await Promise.all([
-      supabase
-        .from("people")
-        .select(
-          "id, email, name, phone, company, role, source_site, ok_to_contact, attributes, created_at, updated_at"
-        )
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("contacts")
-        .select("id, person_id, type, subject, message, source, status, created_at")
-        .order("created_at", { ascending: false }),
-      // activity_log may not exist yet if migration 0002 hasn't run — fetched
-      // separately below so its absence never blocks the rest of the page.
-      supabase
-        .from("activity_log")
-        .select("id, contact_id, from_status, to_status, actor, note, created_at")
-        .order("created_at", { ascending: true }),
-      // orders may not exist yet if migration 0003 hasn't run — same
-      // best-effort fallback.
-      supabase
-        .from("orders")
-        .select(
-          "id, person_id, product_name, amount_cents, currency, status, created_at"
-        )
-        .order("created_at", { ascending: false }),
-    ]);
+    let query = supabase
+      .from("people")
+      .select(
+        "id, email, name, phone, company, role, source_site, ok_to_contact, attributes, created_at, updated_at",
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false });
 
-    if (peopleRes.error) throw peopleRes.error;
-    if (contactsRes.error) throw contactsRes.error;
+    if (term) {
+      query = query.or(
+        `name.ilike.%${term}%,email.ilike.%${term}%,company.ilike.%${term}%`
+      );
+    }
+    if (segment === "opted-in") query = query.eq("ok_to_contact", true);
+    else if (segment === "opted-out") query = query.eq("ok_to_contact", false);
 
-    return {
-      people: (peopleRes.data as unknown as PersonRow[]) ?? [],
-      contacts: (contactsRes.data as unknown as PersonContactRow[]) ?? [],
-      activity: activityRes.error
-        ? []
-        : (activityRes.data as unknown as ActivityLogRow[]) ?? [],
-      orders: ordersRes.error
-        ? []
-        : (ordersRes.data as unknown as PersonOrderRow[]) ?? [],
-    };
+    const from = (page - 1) * PAGE_SIZE;
+    const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+
+    return { rows: (data as unknown as PersonRow[]) ?? [], total: count ?? 0 };
   } catch (err) {
     console.error("[admin] failed to load the People directory:", err);
     return null;
   }
 }
 
-export default async function AdminPeoplePage() {
-  const directory = await fetchDirectory();
+export default async function AdminPeoplePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = firstParam(sp.q);
+  const segment = firstParam(sp.segment) || "all";
+  const page = parsePage(sp.page);
+
+  const result = await fetchPeople({ q, segment, page });
+  const isFiltering = q !== "" || segment !== "all";
+
+  const params: Record<string, string> = {};
+  if (q) params.q = q;
+  if (segment !== "all") params.segment = segment;
 
   return (
     <div>
@@ -81,30 +89,72 @@ export default async function AdminPeoplePage() {
         </h1>
         <p className="mt-2 text-[var(--gray-2)]">
           One row per person, deduplicated by email. Click a row to see their
-          full history — inquiries, status changes, and orders — in one
-          place.
+          full history — inquiries, status changes, and orders — in one place.
         </p>
       </header>
 
-      {directory === null || directory.people.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
-          <p className="text-lg font-medium text-[var(--ink)]">
-            No people yet or database not connected
-          </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
-            {directory !== null
-              ? "Once someone submits the contact form, they'll show up here."
-              : "The database isn't reachable yet. Set the environment variables and refresh."}
-          </p>
-        </div>
+      {result === null ? (
+        <EmptyState connected={false} />
       ) : (
-        <PeopleDirectory
-          people={directory.people}
-          contacts={directory.contacts}
-          activity={directory.activity}
-          orders={directory.orders}
-        />
+        <>
+          <ListToolbar
+            searchPlaceholder="Search by name, email, or company…"
+            filterParam="segment"
+            filterLabel="Filter by newsletter opt-in"
+            options={[
+              { value: "all", label: "All people" },
+              { value: "opted-in", label: "Newsletter: opted in" },
+              { value: "opted-out", label: "Newsletter: opted out" },
+            ]}
+          />
+
+          {result.total === 0 ? (
+            isFiltering ? (
+              <NoMatch />
+            ) : (
+              <EmptyState connected />
+            )
+          ) : (
+            <>
+              <PeopleDirectory people={result.rows} />
+              <Pagination
+                page={page}
+                total={result.total}
+                pathname="/admin/people"
+                params={params}
+              />
+            </>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ connected }: { connected: boolean }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
+      <p className="text-lg font-medium text-[var(--ink)]">
+        No people yet or database not connected
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
+        {connected
+          ? "Once someone submits the contact form, they'll show up here."
+          : "The database isn't reachable yet. Set the environment variables and refresh."}
+      </p>
+    </div>
+  );
+}
+
+function NoMatch() {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
+      <p className="text-lg font-medium text-[var(--ink)]">
+        No people match your filters
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
+        Try a different search term or segment.
+      </p>
     </div>
   );
 }
