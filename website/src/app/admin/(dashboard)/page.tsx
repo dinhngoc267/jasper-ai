@@ -65,9 +65,8 @@ export default async function AdminLeadsPage() {
           Leads
         </h1>
         <p className="mt-2 text-[var(--gray-2)]">
-          Every inquiry from the site, worked from first contact to won or
-          lost. Click a card to see the full record and move it to a new
-          stage.
+          Every inquiry from the site, newest first. Change the status inline,
+          or click a name to see the full record and move it to a new stage.
         </p>
       </header>
 

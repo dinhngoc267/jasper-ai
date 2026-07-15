@@ -128,22 +128,41 @@
     @apply font-sans;
   }
 }
-/* ── Infinite Leverage design tokens ───────────────────────── */
+/* ── Jasper AI CRM design tokens (Apple minimalist mock, 2026-07-15) ──
+   Superseding the earlier Infinite Leverage preset per the operator's
+   sign-off on docs/product/Jasper AI CRM.html — same variable names kept so
+   every existing component (which already styles itself entirely off these
+   tokens) re-skins automatically without a markup rewrite. */
 :root {
-  --ink: #0B1426;
-  --ink-soft: #1F2A3D;
-  --gray-1: #94A3B8;
-  --gray-2: #64748B;
-  --gray-3: #CBD5E1;
-  --rule: #E2E8F0;
-  --blue: #2563EB;
-  --blue-soft: #DBEAFE;
-  --amber: #B45309;
-  --amber-soft: #FEF3E2;
-  --cream: #F2EDE3;
-  --paper: #FFFFFF;
+  --ink: #1d1d1f;
+  --ink-soft: #3a3a3c;
+  --gray-1: #86868b;
+  --gray-2: #6e6e73;
+  --gray-3: #a1a1a6;
+  --rule: rgba(0, 0, 0, .07);
+  --blue: #0071e3;
+  --blue-soft: rgba(0, 113, 227, .12);
+  --amber: #ff9500;
+  --amber-soft: rgba(255, 149, 0, .14);
+  --green: #34c759;
+  --green-soft: rgba(52, 199, 89, .14);
+  --purple: #5e5ce6;
+  --teal: #30b0c7;
+  --red: #ff3b30;
+  --red-soft: rgba(255, 59, 48, .12);
+  --gray-soft: rgba(142, 142, 147, .16);
+  --cream: #f5f5f7;
+  --paper: #ffffff;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Apple system font stack, per the new design mock — falls back to the
+   loaded Inter Tight webfont, then any system sans. */
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", var(--font-inter-tight), "Helvetica Neue", Helvetica,
+    system-ui, sans-serif;
 }

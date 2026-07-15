@@ -35,6 +35,18 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+/** Per-status badge background + text color, matching the design mock's
+ * order-status pill treatment. */
+export const ORDER_STATUS_STYLES: Record<
+  string,
+  { bg: string; color: string }
+> = {
+  pending: { bg: "var(--amber-soft)", color: "#c26a00" },
+  paid: { bg: "var(--green-soft)", color: "#1a7a34" },
+  refunded: { bg: "var(--gray-soft)", color: "var(--gray-2)" },
+  cancelled: { bg: "var(--red-soft)", color: "#c0392b" },
+};
+
 /** `amount_cents` + `currency` -> "$1,200.00". Falls back to a plain
  * cents-based display for currencies `Intl.NumberFormat` doesn't recognize. */
 export function formatAmount(amountCents: number, currency: string): string {

@@ -100,7 +100,7 @@ export function OrderForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-5 rounded-lg bg-[var(--blue)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+        className="mt-5 rounded-full bg-[var(--blue)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Adding…" : "Add order"}
       </button>

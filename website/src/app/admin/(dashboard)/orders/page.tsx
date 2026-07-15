@@ -1,6 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { formatAmount, ORDER_STATUS_LABELS, type OrderRow } from "@/lib/orders";
-import { formatDate } from "@/lib/leads";
+import {
+  formatAmount,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_STYLES,
+  type OrderRow,
+} from "@/lib/orders";
+import { formatDate, initials } from "@/lib/leads";
 import { OrderForm } from "./order-form";
 
 // Render on every request — never at build time (there is no database during
@@ -67,35 +72,48 @@ export default async function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-[var(--rule)] last:border-0"
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-[var(--ink)]">
-                      {order.people?.name || "—"}
-                    </p>
-                    <p className="text-xs text-[var(--gray-2)]">
-                      {order.people?.email || "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--ink)]">
-                    {order.product_name}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--ink)]">
-                    {formatAmount(order.amount_cents, order.currency)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--blue)]">
-                      {ORDER_STATUS_LABELS[order.status] ?? order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--gray-2)]">
-                    {formatDate(order.created_at)}
-                  </td>
-                </tr>
-              ))}
+              {orders.map((order) => {
+                const style = ORDER_STATUS_STYLES[order.status];
+                return (
+                  <tr
+                    key={order.id}
+                    className="border-b border-[var(--rule)] last:border-0"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[var(--ink-soft)] text-xs font-semibold text-white">
+                          {initials(order.people?.name)}
+                        </span>
+                        <div>
+                          <p className="font-medium text-[var(--ink)]">
+                            {order.people?.name || "—"}
+                          </p>
+                          <p className="text-xs text-[var(--gray-2)]">
+                            {order.people?.email || "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-[var(--ink)]">
+                      {order.product_name}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-[var(--ink)]">
+                      {formatAmount(order.amount_cents, order.currency)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+                        style={{ background: style?.bg, color: style?.color }}
+                      >
+                        {ORDER_STATUS_LABELS[order.status] ?? order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[var(--gray-2)]">
+                      {formatDate(order.created_at)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
