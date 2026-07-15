@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ContactForm } from "./contact-form";
 
 const SERVICES = [
@@ -112,6 +113,9 @@ export default function Home() {
             Jasper<span className="text-[var(--gray-1)]">·</span>AI
           </div>
           <div className="flex items-center gap-6 text-[13px] text-[var(--ink)]">
+            <a href="#work" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              Work
+            </a>
             <a href="#why" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
               Why
             </a>
@@ -179,6 +183,42 @@ export default function Home() {
               <p className="mt-1.5 text-sm text-[var(--gray-2)]">{s.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* WORK — shipped, not slideware */}
+      <section id="work" className="mx-auto mt-24 max-w-5xl scroll-mt-[52px] px-6">
+        <div className="grid items-center gap-14 md:grid-cols-2">
+          <div>
+            <h2 className="text-4xl font-semibold leading-tight tracking-tight">
+              Shipped, not slideware.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--gray-2)]">
+              Every engagement ends with running software you own — deployed,
+              documented, and handed off. No lock-in, no mystery.
+            </p>
+            <ul className="mt-6 flex flex-col gap-3.5">
+              {[
+                "Support agents that resolve tickets end-to-end",
+                "RAG search over internal document stores",
+                "Knowledge graphs that connect siloed data",
+              ].map((item) => (
+                <li key={item} className="flex items-baseline gap-3 text-[15px]">
+                  <span className="h-1.5 w-1.5 flex-none -translate-y-0.5 rounded-full bg-[var(--blue)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-[var(--rule)]">
+            <Image
+              src="/case-study.png"
+              alt="Support agent console — a shipped AI system example"
+              width={1200}
+              height={900}
+              className="h-auto w-full object-cover"
+            />
+          </div>
         </div>
       </section>
 
@@ -287,6 +327,14 @@ export default function Home() {
           <ContactForm />
         </div>
       </section>
+
+      {/* FOOTER */}
+      <footer className="mx-auto flex max-w-5xl items-center justify-between border-t border-[var(--rule)] px-6 py-9">
+        <span className="text-xs text-[var(--gray-1)]">
+          © 2026 Jasper AI · jasper-ai.com
+        </span>
+        <span className="text-xs text-[var(--gray-1)]">San Francisco, CA</span>
+      </footer>
     </main>
   );
 }
