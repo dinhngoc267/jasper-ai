@@ -1,5 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { formatDate, initials } from "@/lib/leads";
+import { firstParam, parsePage, sanitizeSearch } from "@/lib/search";
+import { ListToolbar } from "../list-toolbar";
+import { PAGE_SIZE, Pagination } from "../pagination";
+import { NewsletterTable, type NewsletterPerson } from "./newsletter-table";
 
 // Render on every request — never at build time (there is no database during
 // `next build`). Same pattern as the leads/people/orders pages.
@@ -9,36 +12,100 @@ export const metadata = {
   title: "Newsletter — Jasper AI Admin",
 };
 
-type NewsletterPerson = {
-  id: string;
-  name: string | null;
-  email: string;
-  company: string | null;
-  attributes: { how_they_heard?: string } | null;
-  created_at: string;
+type NewsletterResult = {
+  rows: NewsletterPerson[];
+  total: number;
+  /** Distinct `how_they_heard` values across ALL subscribers (see below). */
+  sources: string[];
 };
 
-/** Everyone with `ok_to_contact = true` — there is no separate newsletter
- * table, per the product plan. Returns null (not throws) if unreachable. */
-async function fetchSubscribers(): Promise<NewsletterPerson[] | null> {
+/**
+ * Fetch ONE page of subscribers (`ok_to_contact = true`), newest-first, with
+ * search (name/email/company) and the "how they heard" filter applied in the
+ * query. Returns null (not throws) if the DB is unreachable.
+ *
+ * The filter's option list can't be derived from the current page alone under
+ * server pagination, so we run a second lightweight query for the distinct
+ * `how_they_heard` values across all subscribers. It selects a single computed
+ * text column and de-dupes in JS (PostgREST has no DISTINCT without an RPC) —
+ * cheap at this scale (~21 rows, one column) and always in sync with the data.
+ */
+async function fetchSubscribers({
+  q,
+  heard,
+  page,
+}: {
+  q: string;
+  heard: string;
+  page: number;
+}): Promise<NewsletterResult | null> {
   try {
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const term = sanitizeSearch(q);
+
+    // --- distinct "how they heard" options (all subscribers) ---
+    const { data: heardRows, error: heardError } = await supabase
       .from("people")
-      .select("id, name, email, company, attributes, created_at")
+      .select("how_they_heard:attributes->>how_they_heard")
+      .eq("ok_to_contact", true);
+    if (heardError) throw heardError;
+    const sources = Array.from(
+      new Set(
+        (heardRows ?? [])
+          .map((r) => (r as { how_they_heard: string | null }).how_they_heard)
+          .filter((v): v is string => Boolean(v && v.trim()))
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    // --- the current page of subscribers ---
+    let query = supabase
+      .from("people")
+      .select("id, name, email, company, attributes, created_at", {
+        count: "exact",
+      })
       .eq("ok_to_contact", true)
       .order("created_at", { ascending: false });
 
+    if (term) {
+      query = query.or(
+        `name.ilike.%${term}%,email.ilike.%${term}%,company.ilike.%${term}%`
+      );
+    }
+    if (heard !== "all") {
+      query = query.eq("attributes->>how_they_heard", heard);
+    }
+
+    const from = (page - 1) * PAGE_SIZE;
+    const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
-    return (data as unknown as NewsletterPerson[]) ?? [];
+
+    return {
+      rows: (data as unknown as NewsletterPerson[]) ?? [],
+      total: count ?? 0,
+      sources,
+    };
   } catch (err) {
     console.error("[admin] failed to load newsletter subscribers:", err);
     return null;
   }
 }
 
-export default async function AdminNewsletterPage() {
-  const people = await fetchSubscribers();
+export default async function AdminNewsletterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = firstParam(sp.q);
+  const heard = firstParam(sp.heard) || "all";
+  const page = parsePage(sp.page);
+
+  const result = await fetchSubscribers({ q, heard, page });
+  const isFiltering = q !== "" || heard !== "all";
+
+  const params: Record<string, string> = {};
+  if (q) params.q = q;
+  if (heard !== "all") params.heard = heard;
 
   return (
     <div>
@@ -47,66 +114,72 @@ export default async function AdminNewsletterPage() {
           Newsletter
         </h1>
         <p className="mt-2 text-[var(--gray-2)]">
-          Everyone who opted in to occasional updates
-          (<code className="font-mono text-xs">ok_to_contact = true</code>).
+          Everyone who opted in to occasional updates (
+          <code className="font-mono text-xs">ok_to_contact = true</code>).
         </p>
       </header>
 
-      {people === null || people.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
-          <p className="text-lg font-medium text-[var(--ink)]">
-            No subscribers yet or database not connected
-          </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
-            {people !== null
-              ? "Once someone opts in on the contact form, they'll show up here."
-              : "The database isn't reachable yet. Set the environment variables and refresh."}
-          </p>
-        </div>
+      {result === null ? (
+        <EmptyState connected={false} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-[var(--rule)] bg-[var(--paper)]">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-[var(--rule)] text-xs uppercase tracking-wider text-[var(--gray-2)]">
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
-                <th className="px-4 py-3 font-semibold">Company</th>
-                <th className="px-4 py-3 font-semibold">How they heard</th>
-                <th className="px-4 py-3 font-semibold">Since</th>
-              </tr>
-            </thead>
-            <tbody>
-              {people.map((person) => (
-                <tr
-                  key={person.id}
-                  className="border-b border-[var(--rule)] last:border-0"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ink-soft)] text-xs font-semibold text-white">
-                        {initials(person.name)}
-                      </span>
-                      <span className="font-medium text-[var(--ink)]">
-                        {person.name || "—"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--ink)]">{person.email}</td>
-                  <td className="px-4 py-3 text-[var(--gray-2)]">
-                    {person.company || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--gray-2)]">
-                    {person.attributes?.how_they_heard || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--gray-2)]">
-                    {formatDate(person.created_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <ListToolbar
+            searchPlaceholder="Search by name, email, or company…"
+            filterParam="heard"
+            filterLabel="Filter by how they heard"
+            options={[
+              { value: "all", label: "All sources" },
+              ...result.sources.map((s) => ({ value: s, label: s })),
+            ]}
+          />
+
+          {result.total === 0 ? (
+            isFiltering ? (
+              <NoMatch />
+            ) : (
+              <EmptyState connected />
+            )
+          ) : (
+            <>
+              <NewsletterTable people={result.rows} />
+              <Pagination
+                page={page}
+                total={result.total}
+                pathname="/admin/newsletter"
+                params={params}
+              />
+            </>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ connected }: { connected: boolean }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
+      <p className="text-lg font-medium text-[var(--ink)]">
+        No subscribers yet or database not connected
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
+        {connected
+          ? "Once someone opts in on the contact form, they'll show up here."
+          : "The database isn't reachable yet. Set the environment variables and refresh."}
+      </p>
+    </div>
+  );
+}
+
+function NoMatch() {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-16 text-center">
+      <p className="text-lg font-medium text-[var(--ink)]">
+        No subscribers match your filters
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--gray-2)]">
+        Try a different search term or source.
+      </p>
     </div>
   );
 }

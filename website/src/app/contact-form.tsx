@@ -156,14 +156,22 @@ export function ContactForm() {
           <label htmlFor="contact-how-heard" className={labelClass}>
             How did you hear about me?
           </label>
-          <input
+          <select
             id="contact-how-heard"
             data-testid="contact-how-heard"
             name="how_they_heard"
-            type="text"
-            placeholder="LinkedIn, referral, GitHub…"
-            className={fieldClass}
-          />
+            defaultValue=""
+            className={selectClass}
+          >
+            <option value="">Select one…</option>
+            <option value="Referral">Referral</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Search">Search (Google)</option>
+            <option value="Event">Event / conference</option>
+            <option value="Website">Website / blog</option>
+            <option value="GitHub">GitHub</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
         <div>
           <label htmlFor="contact-company-size" className={labelClass}>
