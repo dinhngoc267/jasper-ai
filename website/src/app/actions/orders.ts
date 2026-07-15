@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders";
 
@@ -77,6 +78,11 @@ export async function addOrder(
     });
 
     if (insertError) throw insertError;
+
+    // Refresh the Orders list and the person's record so the new order shows
+    // immediately, without a manual reload.
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/people");
 
     return { success: true };
   } catch (err) {
