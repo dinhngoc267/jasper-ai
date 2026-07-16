@@ -317,7 +317,11 @@ function buildNeedsAttention(
     });
   }
   rows.sort((a, b) => b.idleDays - a.idleDays);
-  return rows.slice(0, 8);
+  // No cap: at this data volume (tens of rows, per the file header) an
+  // operator must never see a truncated list with no indication that rows
+  // are missing. `needs-attention-table.tsx` renders every row returned here
+  // and prints the total count, so nothing is ever silently hidden.
+  return rows;
 }
 
 // ── Fetching ──────────────────────────────────────────────────────────────────
