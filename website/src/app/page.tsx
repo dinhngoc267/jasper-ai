@@ -125,6 +125,9 @@ export default function Home() {
             <a href="#faq" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
               FAQ
             </a>
+            <a href="/blog" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
+              Blog
+            </a>
             <a href="#contact" className="hidden transition hover:text-[var(--gray-2)] sm:inline">
               Contact
             </a>
