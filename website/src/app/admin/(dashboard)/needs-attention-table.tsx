@@ -3,7 +3,9 @@
  * quiet: no activity_log entry in 7+ days, falling back to the lead's
  * created_at when it has no activity yet (the same staleness fallback the leads
  * board uses). Each row deep-links into the lead drawer on `/admin/leads`.
- * Server-rendered; sorted most-idle first and capped upstream.
+ * Server-rendered; sorted most-idle first. `dashboard.ts` returns every
+ * qualifying lead (no cap) and the subtitle below prints the live count, so
+ * the operator always sees the true total — nothing is ever silently hidden.
  */
 import Link from "next/link";
 import { TYPE_LABELS } from "@/lib/leads";
@@ -11,11 +13,13 @@ import type { NeedsAttentionRow } from "@/lib/dashboard";
 import { Card } from "./dashboard-widgets";
 
 export function NeedsAttentionTable({ rows }: { rows: NeedsAttentionRow[] }) {
+  const subtitle =
+    rows.length === 0
+      ? "Open leads with no movement in 7+ days — oldest first"
+      : `${rows.length} open lead${rows.length === 1 ? "" : "s"} with no movement in 7+ days — oldest first`;
+
   return (
-    <Card
-      title="Needs attention"
-      subtitle="Open leads with no movement in 7+ days — oldest first"
-    >
+    <Card title="Needs attention" subtitle={subtitle}>
       {rows.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-[var(--gray-2)]">
           Nothing stale — every open lead has moved in the last week.
