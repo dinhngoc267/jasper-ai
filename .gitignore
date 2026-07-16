@@ -8,11 +8,13 @@ website/.env.local
 .env
 .env.local
 .env.*.local
+jasper-ai-credentials.md
 
 # local-only
 working_files/
 .claude/settings.local.json
 .DS_Store
+.playwright-mcp/
 
 # heavy media & design sources
 *.psd
