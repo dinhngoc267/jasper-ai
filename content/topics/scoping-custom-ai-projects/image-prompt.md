@@ -1,0 +1,6 @@
+subject: a single fork in a path rendered as a technical diagram — one branch labeled path splits into three distinct architecture routes (a document/retrieval icon for RAG, a neural-node icon for fine-tuning, a connected-graph icon for knowledge graph), with one route quietly highlighted as chosen and the other two fading out, evoking the moment an AI project's architecture decision gets made
+style: minimalist line-art / blueprint diagram aesthetic, flat vector, generous negative space — architectural schematic rather than photographic, no human figures, no literal robots
+mood: precise, calm, decisive — the visual should feel like a deliberate engineering choice, not "AI hype" or sci-fi
+palette: near-white background, single charcoal/graphite line color for the diagram, one muted deep blue accent (#2563EB) applied only to the chosen path to draw the eye — restrained, not saturated or neon
+composition: wide 16:9 hero crop, diagram horizontally centered with clear breathing room on all sides so it reads at both full-width hero size and small blog-card thumbnail size; no text or labels baked into the image itself
+avoid: literal robots, glowing brains, circuit-board clichés, stock-photo humans pointing at screens, neon cyberpunk colors, any embedded text or logos, clutter that won't scan at thumbnail size

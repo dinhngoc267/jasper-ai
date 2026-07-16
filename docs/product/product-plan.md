@@ -14,8 +14,17 @@ custom LLM applications built; businesses who want AI strategy and
 architecture advice; and clients who want ongoing monthly support.
 
 What we are deliberately NOT building: no affiliates, no subscriptions,
-no cohorts, no analytics dashboards, no integrations beyond what's named
-here. If it isn't load-bearing for capturing and working a lead, it's out.
+no cohorts, no integrations beyond what's named here. If it isn't
+load-bearing for capturing and working a lead, it's out.
+
+> **Scope change (2026-07-16):** This list originally read "no analytics
+> dashboards." An admin dashboard shipped ad hoc on 2026-07-15 (commit
+> `bdfff3d`, tracked as epic E3) before that exclusion was revisited. BUILD 3
+> formally amends the exclusion: the dashboard is adopted as the one
+> instrument I run lead generation from, so "no analytics dashboards" is
+> lifted — but narrowly. The dashboard is load-bearing for exactly one job:
+> deciding, each week, where lead-generation effort goes. It is not a licence
+> to build reporting for its own sake. See BUILD 3 for the hard limits.
 
 ## The brief (drives every /goal command)
 
@@ -155,3 +164,120 @@ Success Criteria (how we know it's good, not just done):
 - At 3–5 inquiries a week — my real starting volume from Q2 — this keeps
   up without me dropping to the database by hand, and nothing about the
   design breaks when that number grows.
+
+## BUILD 3 — Leverage the dashboard to grow lead generation
+
+Goal: Turn the dashboard from a display I glance at into the instrument I
+run lead generation with. Builds 1 and 2 catch and work leads reactively —
+they wait for the inbox to fill. BUILD 3 closes the loop the other way with a
+real automated pipeline, not a personal ritual: scheduled jobs compute the
+funnel baseline and bias content toward the channel that's working, while the
+dashboard itself is made impossible to ignore for stale leads. The one thing
+that stays permanently human is deciding what to actually change about a
+leaking stage — the system flags, it never fixes.
+
+> **Revision (2026-07-16):** the original version of this section described a
+> manual weekly ritual where I personally review the dashboard and make three
+> decisions by hand, with no new code beyond the E3 bug fix. After working
+> through the mechanics, that's been replaced with three separately-scoped,
+> automated pieces below — each with its own readiness state, rather than one
+> undifferentiated weekly chore.
+
+Scope: E3's dashboard verification is still the hard entry gate — nothing
+below starts until the KPI totals, conversion-funnel "furthest stage reached"
+logic, revenue-by-month math, how-they-heard breakdown, and needs-attention
+staleness logic are confirmed against direct Supabase queries and a
+QA-REPORT is filed. Once that passes, BUILD 3 is three pieces:
+
+1. **Weekly baseline + funnel-leak flag.** A scheduled job computes
+   inquiries/week and per-stage conversion rates, and flags whichever
+   pipeline stage has the largest stage-to-stage drop-off. (Real data in this
+   project today: new_lead→contacted 33%, contacted→discovery_call 33%,
+   discovery_call→proposal 25%, proposal→won 33% — fairly even right now,
+   no single glaring leak yet, which is itself a useful early finding rather
+   than a null result.) Results are written to a durable weekly log. No
+   external dependency, no blocker — buildable as soon as E3 passes.
+   **The system flags the leaking stage; it does not and cannot fix it.**
+   Deciding and making the process fix for a leaking stage is a permanent
+   human judgment call, never something to automate away.
+2. **Needs-attention visibility.** The dashboard's stale-lead list (≥7 days
+   idle) is made impossible to miss directly on the dashboard UI, rather than
+   pushed out as an external notification. No new integration required — it
+   reuses the existing Supabase-backed dashboard. A Lark/Slack-style push
+   notification was considered and set aside for now because `LARK_*` env
+   vars are blank in this project (per the `CLAUDE.md` catalog) — that
+   remains a separate future option, not this build's scope. No blocker
+   beyond E3 — ships alongside item 1.
+3. **Channel-biased content briefs.** A scheduled job reads the
+   how-they-heard breakdown and biases the next content brief toward
+   whichever channel is producing leads, feeding the existing
+   Mon(writer)/Tue(designer)/Wed(web-publisher) weekly content schedule. This
+   piece publishes to the project's own website — a new `/blog` section at
+   `website/src/app/blog/...` (Next.js App Router; NOT
+   `website/pages/blog/...`, the old Pages Router path the web-publisher
+   agent's default persona incorrectly assumed for this project, already
+   corrected today in `agents/web-publisher/context/persona.md`). It is NOT
+   an email channel — email/newsletter is a fully separate concern, already
+   blocked on the `jasper-ai.com` domain purchase and Resend domain
+   verification. **Hard blocker, sequenced ahead of this piece:** the
+   writer → designer → web-publisher content pipeline has never run once in
+   this project — `content/topics/` is empty, no brief has ever been
+   written, and there is no `/blog` route on the live site yet.
+   Channel-bias automation cannot be layered onto a pipeline that's never
+   been proven end to end. A precursor task — one real post taken brief →
+   written → designed → published live, run manually/on-demand rather than
+   on data-driven autopilot — must happen first, to establish the actual
+   blog page conventions. Only after that proof does automating the
+   channel-selection step make sense. Automation for this piece stops at a
+   staged git commit: per this project's engineering rules (deploys only via
+   `git push`, never a direct push to `main`, no `vercel deploy`), the
+   actual go-live push is always a human action, stated explicitly here so
+   it isn't read as a gap later.
+
+Deliberately NOT in scope: email nurture of any kind — newsletter sends,
+sequences, the visitor confirmation email — which stays blocked until
+jasper-ai.com is purchased and verified as a Resend sending domain (both
+still open in the CLAUDE.md catalog); paid acquisition; and any new dashboard
+feature beyond what items 1–2 above and the E3 verification step force us to
+build. This build also formally amends the "no analytics dashboards"
+exclusion recorded at the top of this plan.
+
+**Decided (2026-07-16):** the weekly baseline log lives in a new
+`docs/product/dashboard-baselines/` folder, one file per week.
+
+Definition of Done (every box must be true):
+- E3's dashboard verification passes (KPI totals, funnel "furthest stage
+  reached" logic, revenue-by-month math, how-they-heard breakdown,
+  needs-attention staleness logic all match direct Supabase queries) and a
+  QA-REPORT is filed — the entry gate for everything below.
+- Item 1 (weekly baseline + funnel-leak flag) runs on schedule and writes a
+  durable weekly log at a decided location; the flagged leaking stage is
+  visible but never auto-resolved — the fix remains a human decision.
+- Item 2 (needs-attention visibility) makes every stale lead (≥7 days idle)
+  impossible to miss on the dashboard UI itself, with no reliance on an
+  external notification channel.
+- Item 3's precursor — one real post shipped brief → written → designed →
+  published live on the new `/blog` route — is complete before any
+  channel-bias automation is built on top of it.
+- Once the precursor is proven, item 3's scheduled job reads the
+  how-they-heard breakdown and biases the next content brief toward the
+  producing channel, staging a git commit for human review — never pushing
+  to `main` itself.
+
+Success Criteria (how we know it's good, not just done):
+- I can answer "which channel produces leads, and where do they stall?" from
+  the dashboard in under a minute — and trust the numbers because they were
+  verified.
+- No lead has sat stale past 7 days without it being visually obvious on the
+  dashboard the moment I open it.
+- Every content post shipped through the automated path traces back to a
+  how-they-heard number that justified targeting that channel — no content
+  ships on a hunch — and every go-live push was a deliberate human action,
+  not something the automation did on its own.
+- The funnel-leak flag surfaces a real leaking stage (or confirms, as today's
+  data does, that no single stage is glaring yet) without ever silently
+  "fixing" it — that decision stays mine.
+
+> **Operator-tunable choices:** the 7-day staleness threshold is Jasper's
+> call, not fixed law. Adjust it if real volume argues for it — e.g. tighten
+> to 5 days if leads move faster — and note the change here when you do.

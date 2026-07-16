@@ -1,5 +1,71 @@
 # Jasper AI — Project Context
 
+## Project Catalog (read before any /goal command)
+
+### Stack
+- IL skill installed: ✅ (8 agents active)
+- GitHub repo: ✅ `dinhngoc267/jasper-ai`
+- Vercel project: ✅ `jasper-ai` — live at https://jasper-ai-neon.vercel.app
+- Domain bought: ❌ pending — jasper-ai.com not purchased yet
+- Supabase project: ✅ `jasper-ai`
+- Supabase URL: ✅ set in both Vercel Production env vars and
+  `website/.env.local` — confirmed present in both.
+- Supabase service key: ✅ same — present in Vercel and locally.
+- Resend account: ✅ `RESEND_API_KEY` present in both Vercel and locally.
+- Prototype live: ✅
+
+Not required for the CRM, deferred:
+- GEMINI_API_KEY: blank/commented out — only used for image generation
+  elsewhere, not load-bearing for Build 1/2.
+- SUPABASE_DB_PASSWORD, LARK_*: blank — not needed.
+
+### Build
+- Build 1 status: ✅ done — contact form → Supabase → admin leads view works
+  end to end on the live domain, deduplicated by email, custom attributes and
+  `new_lead` status verified in the database, and `/admin` is now gated behind
+  Supabase Auth (email/password, proxy.ts route guard). Verified 2026-07-14:
+  submitted a test lead against jasper-ai-neon.vercel.app, confirmed exactly
+  one People row + two linked Contacts rows, logged in with the seeded
+  account, and confirmed the lead appeared on the board newest-first.
+- Admin account seeded: ✅ jasper.le@edge8.ai, password set directly via the
+  Supabase Admin API (no "change password" UI built yet — rotate the same way
+  if needed).
+- Build 2 status: ✅ done (PR #5, merged to main 2026-07-15) — full admin CRM
+  behind the login: Orders (table + add-by-email form), People directory
+  (searchable, per-person drawer with inquiries + status history + orders),
+  Newsletter (ok_to_contact = true), and a shared `(dashboard)` nav. Migrations
+  0002 (`activity_log`) and 0003 (`orders`) applied to the live DB via the
+  Supabase MCP (both were missing — 0002 had never actually been run). Verified
+  end-to-end on 2026-07-15: added an order and saw it on the Orders page + the
+  person's record; moved a lead a stage and DB-confirmed the `activity_log`
+  row; all four sections gated behind login in production.
+- Resend wiring: ⚠️ sandbox only — the internal "new lead" notification email
+  to jasper.le@edge8.ai fires on every submit and is verified working. The
+  *visitor-facing confirmation email* is deliberately deferred: it needs a
+  verified sending domain, which needs a domain purchase (still pending). Uses
+  Resend's `onboarding@resend.dev` sandbox sender, which can only deliver to
+  the Resend account's own address.
+- Resend domain verified: ❌ still pending — blocked on buying a domain (Jasper
+  chose not to buy jasper-ai.com yet). Lifting this unblocks the visitor
+  confirmation email above.
+
+### How to use this catalog
+Before any task or /goal command:
+1. Read this entire CLAUDE.md AND `docs/product/product-plan.md`.
+2. Identify which catalog + plan items the task requires.
+3. If any required item is ❌ or ⚠️, STOP and say what's needed in plain English.
+4. Don't proceed until every required item is resolved.
+5. After the task succeeds, update this catalog with the new state.
+
+Required items by task:
+- /goal build 1 → product-plan.md complete + Stack complete + admin login seeded
+- /goal build 2 → product-plan.md + Stack + Build 1 complete + Resend domain verified
+- /goal build 3 → product-plan.md BUILD 3 section complete + E3 dashboard
+  verification passed (KPI/funnel/revenue/how-they-heard confirmed against
+  direct Supabase queries) + QA-REPORT filed. Note: email nurture is OUT of
+  scope for Build 3 and stays blocked on the Resend domain regardless.
+- Any deploy → GitHub + Vercel + Domain wired
+
 ## Business
 - **Name:** Jasper AI
 - **Operator:** Jasper Le (jasper.le@edge8.ai) · GitHub `dinhngoc267`
