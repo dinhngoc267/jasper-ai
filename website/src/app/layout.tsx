@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { SourceCapture } from "@/components/source-capture";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <SourceCapture />
         {children}
+        <Analytics />
       </body>
     </html>
   );
