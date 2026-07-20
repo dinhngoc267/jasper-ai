@@ -11,7 +11,11 @@ import {
   type LeadRow,
   type Status,
 } from "@/lib/leads";
-import { updateLeadStatus } from "@/app/actions/leads";
+import {
+  updateLeadStatus,
+  addLeadNote,
+  markLeadFollowedUp,
+} from "@/app/actions/leads";
 import { LeadDrawer } from "./lead-drawer";
 
 const FILTERS: { key: string; label: string }[] = [
@@ -140,6 +144,39 @@ export function LeadsBoard({
     });
   }
 
+  /** Shared optimistic path for the two note-only actions (add note / mark
+   * followed up) — both write one activity_log row with from_status ===
+   * to_status, so the lead's stage never changes but its staleness clock
+   * resets. */
+  function logNote(
+    contactId: string,
+    note: string,
+    action: (id: string, n: string) => Promise<{ success: boolean; error?: string }>
+  ) {
+    const lead = leads.find((l) => l.id === contactId);
+    if (!lead) return;
+
+    const optimisticEntry: ActivityLogRow = {
+      id: `optimistic-${Date.now()}`,
+      contact_id: contactId,
+      from_status: lead.status,
+      to_status: lead.status,
+      actor: "admin",
+      note,
+      created_at: new Date().toISOString(),
+    };
+    setActivity((prev) => [...prev, optimisticEntry]);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await action(contactId, note);
+      if (!result.success) {
+        setActivity((prev) => prev.filter((a) => a.id !== optimisticEntry.id));
+        setError(result.error ?? "Couldn't save that.");
+      }
+    });
+  }
+
   return (
     <div>
       {error && (
@@ -261,6 +298,17 @@ export function LeadsBoard({
         onSelectContact={(id) => setOpenId(id)}
         onMoveStage={(status, note) => {
           if (cachedLead) moveLead(cachedLead.id, status, note);
+        }}
+        onAddNote={(note) => {
+          if (cachedLead) logNote(cachedLead.id, note.trim(), addLeadNote);
+        }}
+        onMarkFollowedUp={(note) => {
+          if (cachedLead)
+            logNote(
+              cachedLead.id,
+              note.trim() || "Marked as followed up",
+              markLeadFollowedUp
+            );
         }}
       />
     </div>

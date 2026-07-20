@@ -19,7 +19,7 @@ export default function AdminDashboardLayout({
     <div className="flex min-h-screen bg-[var(--cream)]">
       <Sidebar />
       <main className="min-w-0 flex-1 px-9 py-[30px] pb-[60px]">
-        {children}
+        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
       </main>
     </div>
   );

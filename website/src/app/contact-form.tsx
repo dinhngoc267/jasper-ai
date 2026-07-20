@@ -8,9 +8,41 @@ const initialState: ContactState = { success: false };
 
 const labelClass = "mb-1.5 block text-sm font-semibold text-[var(--ink)]";
 
+const FIRST_TOUCH_STORAGE_KEY = "jasper_first_touch";
+
+/**
+ * Wraps the `submitContact` server action to attach the first-touch source
+ * data captured by `SourceCapture` (in `sessionStorage`, seeded at first
+ * arrival — see that component for why it can't be read from the referrer
+ * header at submit time instead). Read here, at submit time, rather than
+ * baked into hidden inputs at render time, so it always reflects whatever
+ * `sessionStorage` holds the moment the visitor actually clicks submit.
+ */
+function submitContactWithSource(prevState: ContactState, formData: FormData) {
+  try {
+    const raw = window.sessionStorage.getItem(FIRST_TOUCH_STORAGE_KEY);
+    if (raw) {
+      const firstTouch = JSON.parse(raw) as Record<string, string | undefined>;
+      for (const key of [
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "referrer",
+        "landing_page",
+      ]) {
+        if (firstTouch[key]) formData.set(key, firstTouch[key]!);
+      }
+    }
+  } catch {
+    // Storage unavailable or malformed — submit without source data rather
+    // than block the visitor.
+  }
+  return submitContact(prevState, formData);
+}
+
 export function ContactForm() {
   const [state, formAction, pending] = useActionState(
-    submitContact,
+    submitContactWithSource,
     initialState
   );
 

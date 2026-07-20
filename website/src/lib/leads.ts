@@ -25,6 +25,17 @@ export type PersonInfo = {
   created_at: string;
 };
 
+/** Silent source-capture data written into contacts.metadata (jsonb) by the
+ * contact form — see `submitContact` in `app/actions/contact.ts` and the
+ * `SourceCapture` client component that seeds it from sessionStorage. */
+export type ContactMetadata = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  referrer?: string;
+  landing_page?: string;
+};
+
 /** A contact ("lead"/inquiry) row joined to its person. */
 export type LeadRow = {
   id: string;
@@ -35,6 +46,7 @@ export type LeadRow = {
   source: string | null;
   status: string;
   created_at: string;
+  metadata?: ContactMetadata | null;
   people: PersonInfo | null;
 };
 
