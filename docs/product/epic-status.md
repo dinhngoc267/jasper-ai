@@ -34,7 +34,7 @@ Status glyphs: 🔄 in flight · ✅ done · ⏳ partially done · ☐ planned �
 | E1 · Build 1 — Prove the loop | ✅ done | 100% | ●●●●● | 0 | 0 | Live, verified 2026-07-14 against production domain |
 | E2 · Build 2 — Run the business from /admin | ⏳ partially done | 75% | ●●●○○ | 0 | 2 | Migrations now applied per `CLAUDE.md`; still no formal QA-REPORT for Orders/People/Newsletter/nav/Resend scope |
 | E3 · Admin Dashboard & Analytics (new) | ✅ verified | 90% | ●●●●○ | 0 | 1 | Shipped in commit `bdfff3d` (2026-07-15); all 9 QA acceptance items now PASS (2026-07-16) — **unblocks E4**. Remaining 10%: fix is uncommitted, and not yet reflected in `CLAUDE.md` Build catalog / `docs/product/epics.md` |
-| E4 · Build 3 — Leverage the dashboard to grow lead generation | 🔄 in flight | 90% | ●●●●○ | 0 | 0 | All three sub-items code-complete 2026-07-16 (E4.1 PR #12, E4.2 PR #11, E4.3 pipeline-proof PR #13 + channel-signal script built). Remaining is operational: register the `content-brief-weekly` routine + observe one live cycle |
+| E4 · Build 3 — Leverage the dashboard to grow lead generation | 🔄 in flight | 90% | ●●●●○ | 0 | 0 | All three sub-items code-complete 2026-07-16 (E4.1 PR #12, E4.2 PR #11, E4.3 pipeline-proof PR #13 + channel-signal script built). Remaining is operational: register `dashboard-baseline-weekly` (E4.1) and `content-brief-weekly` (E4.3) — corrected 2026-07-20, neither was actually registered despite prior claims — + observe one live cycle each |
 
 ## Drilldown
 
@@ -104,7 +104,7 @@ Status glyphs: 🔄 in flight · ✅ done · ⏳ partially done · ☐ planned �
 
 > **Entry gate (hard dependency on E3) — CLEARED 2026-07-16:** the E3 dashboard verification passed all 9 acceptance items, including the needs-attention fix, independently re-verified by QA against direct Supabase queries, and merged to production via PR #11 (see `docs/engineering/changes/2026-07/2026-07-16-admin-dashboard-verification/QA-REPORT.md`). All three sub-items are now code-complete; what remains is operational, not engineering (see "Outstanding").
 
-**Shipped:** E4.1 (weekly baseline + funnel-leak flag, PR #12), E4.2 (needs-attention visibility, PR #11), and E4.3's pipeline-proof precursor (first blog post live on `/blog`, PR #13) — all merged to production. E4.3's channel-signal automation is built and QA-verified (uncommitted at time of writing), pending routine registration.
+**Shipped:** E4.1 (weekly baseline + funnel-leak flag, PR #12), E4.2 (needs-attention visibility, PR #11), and E4.3's pipeline-proof precursor (first blog post live on `/blog`, PR #13) — all merged to production. E4.3's channel-signal script and routine file are also committed (`6fb28e5`). **Correction (2026-07-20): neither E4.1's `dashboard-baseline-weekly` nor E4.3's `content-brief-weekly` is actually registered as a local scheduled task** — a direct check of `~/.claude/scheduled-tasks/` shows neither directory exists; this doc previously claimed E4.1 was registered with a next-run date, which was wrong. Both remain pending Desktop registration.
 
 **Sub-items:**
 
@@ -113,7 +113,7 @@ Status glyphs: 🔄 in flight · ✅ done · ⏳ partially done · ☐ planned �
 - Script: `website/scripts/weekly-dashboard-baseline.mjs` — verified against live Supabase (11 inquiries this week; funnel counts matched E3's QA-verified numbers exactly: 36/24/16/12/8).
 - First real log: `docs/product/dashboard-baselines/2026-07-16.md`. Found an honest 3-way tie at 33% drop (new_lead→contacted, contacted→discovery_call, proposal→won) — reports the tie rather than silently picking one.
 - The system flags the leaking stage only — it never fixes it; the process fix stays a permanent human decision.
-- Recurring schedule registered as a persistent local routine: `~/.claude/scheduled-tasks/dashboard-baseline-weekly/SKILL.md`, Mondays 8:07 AM, next run 2026-07-20. Runs the script, opens a PR (never auto-merges — same convention as `writer-weekly`).
+- Intended as a persistent local routine (`dashboard-baseline-weekly`, Mondays 8:07 AM) that runs the script and opens a PR (never auto-merges — same convention as `writer-weekly`) — **but as of 2026-07-20 it is NOT registered under `~/.claude/scheduled-tasks/`.** No such directory exists on disk; this was previously (incorrectly) reported as live.
 - Weekly log location: `docs/product/dashboard-baselines/`, one file per week, decided 2026-07-16.
 
 **E4.2 · Needs-attention visibility — ✅ done (2026-07-16, shipped as a side effect of the E3 fix)**
@@ -129,9 +129,9 @@ Status glyphs: 🔄 in flight · ✅ done · ⏳ partially done · ☐ planned �
 - Proposes a brief via an open PR for human review; never silently injects a topic into the writer's auto-queue. Automation stops at the open PR — the go-live `git push`/merge is always a human action, per this project's engineering rules.
 
 **Outstanding (operational, not engineering):**
-- Register two local routines in Claude Desktop (cannot be done from the VS Code session): `dashboard-baseline-weekly` (E4.1) is done; `content-brief-weekly` (E4.3, content of `website/scripts/E4.3-content-brief-routine.SKILL.md`) is pending.
-- Observe one full live cycle of each routine (E4.1's first scheduled run is 2026-07-20) — spot-check the first automated PR each opens.
-- Commit the E4.3 scripts (built but uncommitted at time of writing).
+- Register two local routines in Claude Desktop (cannot be done from the VS Code/CLI session): `dashboard-baseline-weekly` (E4.1) and `content-brief-weekly` (E4.3, content of `website/scripts/E4.3-content-brief-routine.SKILL.md`) — **both still pending as of 2026-07-20**, verified against `~/.claude/scheduled-tasks/` (neither directory exists there).
+- Also pending Desktop registration as of this Phase 1 pass: `linkedin-repurpose-weekly` (content of `website/scripts/E-linkedin-repurpose-routine.SKILL.md`) and the `writer-weekly` cadence change from weekly to biweekly.
+- Observe one full live cycle of each routine once registered — spot-check the first automated PR each opens.
 
 **Definition of done:** E3 dashboard numbers (including the needs-attention count) match direct Supabase queries with a QA-REPORT filed; E4.1 runs on schedule and writes a durable weekly log with the leak flagged (never auto-fixed); E4.2 makes stale leads (≥7 days) impossible to miss on the dashboard itself; E4.3's precursor post is live on `/blog` before its automation is built, and its automation stops at a staged commit, never an autonomous push.
 
