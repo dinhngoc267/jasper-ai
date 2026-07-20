@@ -14,8 +14,17 @@ custom LLM applications built; businesses who want AI strategy and
 architecture advice; and clients who want ongoing monthly support.
 
 What we are deliberately NOT building: no affiliates, no subscriptions,
-no cohorts, no analytics dashboards, no integrations beyond what's named
-here. If it isn't load-bearing for capturing and working a lead, it's out.
+no cohorts, no integrations beyond what's named here. If it isn't
+load-bearing for capturing and working a lead, it's out.
+
+> **Scope change (2026-07-16):** This list originally read "no analytics
+> dashboards." An admin dashboard shipped ad hoc on 2026-07-15 (commit
+> `bdfff3d`, tracked as epic E3) before that exclusion was revisited. BUILD 3
+> formally amends the exclusion: the dashboard is adopted as the one
+> instrument I run lead generation from, so "no analytics dashboards" is
+> lifted — but narrowly. The dashboard is load-bearing for exactly one job:
+> deciding, each week, where lead-generation effort goes. It is not a licence
+> to build reporting for its own sake. See BUILD 3 for the hard limits.
 
 ## The brief (drives every /goal command)
 
@@ -156,102 +165,119 @@ Success Criteria (how we know it's good, not just done):
   up without me dropping to the database by hand, and nothing about the
   design breaks when that number grows.
 
-## BUILD 3 — The dashboard works the pipeline for me
+## BUILD 3 — Leverage the dashboard to grow lead generation
 
-Goal: Turn the read-only dashboard shipped in E3 into the thing that
-actively improves my funnel. After this, the dashboard tells me where
-leads die and how long each stage takes, lets me work a stale lead
-without leaving it, records where every lead truly came from (down to
-the individual blog post), nudges me by email every weekday morning
-before anything goes cold, and every blog post ends with a clear path
-to the contact form. The failure mode this kills: leads decaying
-silently in the pipeline while I look at charts that only describe
-the decay.
+Goal: Turn the dashboard from a display I glance at into the instrument I
+run lead generation with. Builds 1 and 2 catch and work leads reactively —
+they wait for the inbox to fill. BUILD 3 closes the loop the other way with a
+real automated pipeline, not a personal ritual: scheduled jobs compute the
+funnel baseline and bias content toward the channel that's working, while the
+dashboard itself is made impossible to ignore for stale leads. The one thing
+that stays permanently human is deciding what to actually change about a
+leaking stage — the system flags, it never fixes.
 
-Scope — five parts:
+> **Revision (2026-07-16):** the original version of this section described a
+> manual weekly ritual where I personally review the dashboard and make three
+> decisions by hand, with no new code beyond the E3 bug fix. After working
+> through the mechanics, that's been replaced with three separately-scoped,
+> automated pieces below — each with its own readiness state, rather than one
+> undifferentiated weekly chore.
 
-1. Funnel diagnostics. Upgrade the existing conversion funnel from raw
-   counts to stage-to-stage conversion rates (of leads that reached
-   contacted, what % reached discovery_call, then proposal, then won),
-   computed from activity_log history. Add median time-in-stage per
-   stage. Add a source-quality table: per source — lead count, win
-   rate, revenue — combining self-reported how_they_heard with the
-   captured true source from part 3.
+Scope: E3's dashboard verification is still the hard entry gate — nothing
+below starts until the KPI totals, conversion-funnel "furthest stage reached"
+logic, revenue-by-month math, how-they-heard breakdown, and needs-attention
+staleness logic are confirmed against direct Supabase queries and a
+QA-REPORT is filed. Once that passes, BUILD 3 is three pieces:
 
-2. Actionable needs-attention list. Every row in the dashboard's
-   needs-attention list becomes workable in place: open the existing
-   lead drawer, change status, add a note, or "mark followed up".
-   Every action writes an activity_log row — that row is what resets
-   the staleness clock, so follow-up actions and the nudge system in
-   part 4 share one source of truth. Reuse the existing lead drawer
-   and updateLeadStatus pattern; no new tables.
+1. **Weekly baseline + funnel-leak flag.** A scheduled job computes
+   inquiries/week and per-stage conversion rates, and flags whichever
+   pipeline stage has the largest stage-to-stage drop-off. (Real data in this
+   project today: new_lead→contacted 33%, contacted→discovery_call 33%,
+   discovery_call→proposal 25%, proposal→won 33% — fairly even right now,
+   no single glaring leak yet, which is itself a useful early finding rather
+   than a null result.) Results are written to a durable weekly log. No
+   external dependency, no blocker — buildable as soon as E3 passes.
+   **The system flags the leaking stage; it does not and cannot fix it.**
+   Deciding and making the process fix for a leaking stage is a permanent
+   human judgment call, never something to automate away.
+2. **Needs-attention visibility.** The dashboard's stale-lead list (≥7 days
+   idle) is made impossible to miss directly on the dashboard UI, rather than
+   pushed out as an external notification. No new integration required — it
+   reuses the existing Supabase-backed dashboard. A Lark/Slack-style push
+   notification was considered and set aside for now because `LARK_*` env
+   vars are blank in this project (per the `CLAUDE.md` catalog) — that
+   remains a separate future option, not this build's scope. No blocker
+   beyond E3 — ships alongside item 1.
+3. **Channel-biased content briefs.** A scheduled job reads the
+   how-they-heard breakdown and biases the next content brief toward
+   whichever channel is producing leads, feeding the existing
+   Mon(writer)/Tue(designer)/Wed(web-publisher) weekly content schedule. This
+   piece publishes to the project's own website — a new `/blog` section at
+   `website/src/app/blog/...` (Next.js App Router; NOT
+   `website/pages/blog/...`, the old Pages Router path the web-publisher
+   agent's default persona incorrectly assumed for this project, already
+   corrected today in `agents/web-publisher/context/persona.md`). It is NOT
+   an email channel — email/newsletter is a fully separate concern, already
+   blocked on the `jasper-ai.com` domain purchase and Resend domain
+   verification. **Hard blocker, sequenced ahead of this piece:** the
+   writer → designer → web-publisher content pipeline has never run once in
+   this project — `content/topics/` is empty, no brief has ever been
+   written, and there is no `/blog` route on the live site yet.
+   Channel-bias automation cannot be layered onto a pipeline that's never
+   been proven end to end. A precursor task — one real post taken brief →
+   written → designed → published live, run manually/on-demand rather than
+   on data-driven autopilot — must happen first, to establish the actual
+   blog page conventions. Only after that proof does automating the
+   channel-selection step make sense. Automation for this piece stops at a
+   staged git commit: per this project's engineering rules (deploys only via
+   `git push`, never a direct push to `main`, no `vercel deploy`), the
+   actual go-live push is always a human action, stated explicitly here so
+   it isn't read as a gap later.
 
-3. Source capture (silent instrumentation). The contact form captures
-   utm_source, utm_medium, utm_campaign, referrer, and first-touch
-   landing page into contacts.metadata (existing jsonb — no
-   migration). First-touch means captured when the visitor first
-   arrives and persisted client-side (e.g. sessionStorage) through to
-   submit — reading the referrer at submit time would only ever say
-   "came from /contact". The lead drawer shows the true source next
-   to the self-reported how_they_heard.
+Deliberately NOT in scope: email nurture of any kind — newsletter sends,
+sequences, the visitor confirmation email — which stays blocked until
+jasper-ai.com is purchased and verified as a Resend sending domain (both
+still open in the CLAUDE.md catalog); paid acquisition; and any new dashboard
+feature beyond what items 1–2 above and the E3 verification step force us to
+build. This build also formally amends the "no analytics dashboards"
+exclusion recorded at the top of this plan.
 
-4. Internal daily digest — a morning pulse email, not a plain list.
-   A Vercel Cron job sends one email each weekday morning via Resend
-   to jasper.le@edge8.ai, built with React Email: a mini KPI row (new
-   leads this week, open pipeline, revenue this month, each with a
-   delta vs. the prior period), a compact CSS-rendered funnel with
-   per-stage counts and conversion rates, and every stale lead
-   grouped by urgency with colored badges and deep links into
-   /admin/leads. Visuals are CSS/table-based so the email renders
-   correctly in every client with remote images blocked; styling
-   matches the Apple-minimalist design system. Staleness thresholds
-   per stage (tunable defaults): new_lead untouched > 2 days,
-   contacted > 4 days, discovery_call or proposal > 7 days.
-   "Untouched" = no activity_log row since. Internal-only — no
-   visitor-facing email, so no domain dependency.
-
-5. Blog end-of-post CTA. One shared component appended to every blog
-   post ("Scoping an AI project? Let's talk" → contact form), with
-   the post slug carried into the form's source data so blog
-   attribution works even when the referrer header is stripped.
-
-Deliberately NOT in this build: visitor-facing email sequences
-(blocked on the jasper-ai.com domain purchase), per-person page-view
-or reading-history tracking (disproportionate at current volume —
-revisit alongside Resend email-click tracking in the future email
-build), A/B tests or CTA experiments on the marketing site,
-customizable-widget dashboards (already rejected), lead scoring.
+**Decided (2026-07-16):** the weekly baseline log lives in a new
+`docs/product/dashboard-baselines/` folder, one file per week.
 
 Definition of Done (every box must be true):
-- The dashboard funnel shows stage-to-stage conversion rates and
-  median time-in-stage, derived from activity_log, and the numbers
-  match direct Supabase queries.
-- A source-quality table on the dashboard shows lead count, win rate,
-  and revenue per source.
-- From the needs-attention list I can change a lead's status, add a
-  note, and mark it followed up without navigating away, and each
-  action writes an activity_log row.
-- A form submit that started on a blog post stores that post as the
-  first-touch landing page in contacts.metadata, along with referrer
-  and any UTM parameters, and the lead drawer displays them.
-- Every published blog post ends with the shared CTA block linking to
-  the contact form with the post slug attached.
-- A weekday-morning digest email arrives at jasper.le@edge8.ai
-  showing the KPI row with deltas, the mini funnel with conversion
-  rates, and stale leads grouped by urgency with working deep links —
-  and it reads correctly with remote images blocked. A lead acted on
-  today does not appear in tomorrow's digest.
-- All of it sits behind the existing login; nothing new is reachable
-  logged out.
+- E3's dashboard verification passes (KPI totals, funnel "furthest stage
+  reached" logic, revenue-by-month math, how-they-heard breakdown,
+  needs-attention staleness logic all match direct Supabase queries) and a
+  QA-REPORT is filed — the entry gate for everything below.
+- Item 1 (weekly baseline + funnel-leak flag) runs on schedule and writes a
+  durable weekly log at a decided location; the flagged leaking stage is
+  visible but never auto-resolved — the fix remains a human decision.
+- Item 2 (needs-attention visibility) makes every stale lead (≥7 days idle)
+  impossible to miss on the dashboard UI itself, with no reliance on an
+  external notification channel.
+- Item 3's precursor — one real post shipped brief → written → designed →
+  published live on the new `/blog` route — is complete before any
+  channel-bias automation is built on top of it.
+- Once the precursor is proven, item 3's scheduled job reads the
+  how-they-heard breakdown and biases the next content brief toward the
+  producing channel, staging a git commit for human review — never pushing
+  to `main` itself.
 
 Success Criteria (how we know it's good, not just done):
-- I can answer "which stage loses the most leads and how long do
-  leads sit there?" from the dashboard alone, without SQL.
-- I can answer "does the blog produce leads, and do they close?" per
-  post, from the source-quality table.
-- A stale lead goes from digest email to acted-on in under a minute:
-  click the deep link, work it from the needs-attention list, done.
-- Following up on a lead today provably removes it from tomorrow's
-  digest — the staleness clock and my actions agree.
-- No lead can silently decay: anything untouched past its threshold
-  appears in both the dashboard and the next morning's email.
+- I can answer "which channel produces leads, and where do they stall?" from
+  the dashboard in under a minute — and trust the numbers because they were
+  verified.
+- No lead has sat stale past 7 days without it being visually obvious on the
+  dashboard the moment I open it.
+- Every content post shipped through the automated path traces back to a
+  how-they-heard number that justified targeting that channel — no content
+  ships on a hunch — and every go-live push was a deliberate human action,
+  not something the automation did on its own.
+- The funnel-leak flag surfaces a real leaking stage (or confirms, as today's
+  data does, that no single stage is glaring yet) without ever silently
+  "fixing" it — that decision stays mine.
+
+> **Operator-tunable choices:** the 7-day staleness threshold is Jasper's
+> call, not fixed law. Adjust it if real volume argues for it — e.g. tighten
+> to 5 days if leads move faster — and note the change here when you do.
