@@ -1,12 +1,13 @@
-import { fetchDashboardData, parsePeriod, PERIOD_META } from "@/lib/dashboard";
+import { fetchDashboardData, parsePeriod } from "@/lib/dashboard";
 import { PeriodToggle } from "./period-toggle";
 import {
   Card,
+  ContentAttributionTable,
   ConversionFunnel,
   KpiRow,
-  LeadsAreaChart,
+  LeadsVsWonChart,
   RevenueBarChart,
-  SourceBars,
+  SourcePerformance,
 } from "./dashboard-widgets";
 import { NeedsAttentionTable } from "./needs-attention-table";
 
@@ -18,62 +19,152 @@ export const metadata = {
   title: "Dashboard — Jasper AI Admin",
 };
 
+/**
+ * A plain uppercase label above a section's card(s) — explains WHY things
+ * are grouped together (a number badge doesn't). See the design doc for the
+ * full reasoning behind the section order (act → diagnose → understand
+ * channels → historical context).
+ */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[11.5px] font-bold uppercase tracking-wide text-[var(--gray-1)]">
+      {children}
+    </h2>
+  );
+}
+
+/**
+ * Each time-series widget (key metrics, leads-vs-won, revenue) owns its own
+ * Week/Month/Quarter toggle, written to a distinct search param, so their
+ * periods are independent. The snapshot widgets (funnel, source performance,
+ * content attribution) have no period — a funnel/attribution view is "current
+ * state", not "what happened this week" — and carry a fixed "All time" pill.
+ */
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string | string[] }>;
+  searchParams: Promise<{
+    kpi?: string | string[];
+    leads?: string | string[];
+    revenue?: string | string[];
+    source?: string | string[];
+  }>;
 }) {
-  const period = parsePeriod((await searchParams).period);
-  const data = await fetchDashboardData(period);
-  const { compare } = PERIOD_META[period];
+  const sp = await searchParams;
+  const kpiPeriod = parsePeriod(sp.kpi);
+  const leadsPeriod = parsePeriod(sp.leads);
+  const revenuePeriod = parsePeriod(sp.revenue);
+  const sourcePeriod = parsePeriod(sp.source);
+
+  const data = await fetchDashboardData({
+    kpi: kpiPeriod,
+    leads: leadsPeriod,
+    revenue: revenuePeriod,
+    source: sourcePeriod,
+  });
+
+  const allTimeScope = { label: "All time", fixed: true } as const;
 
   return (
     <div>
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">
-            Dashboard
-          </h1>
-          <p className="mt-2 text-[var(--gray-2)]">
-            Pipeline, revenue, and what needs a nudge — at a glance.
-          </p>
-        </div>
-        <PeriodToggle current={period} />
+      <header className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">
+          Dashboard
+        </h1>
+        <p className="mt-2 text-[var(--gray-2)]">
+          Pipeline, revenue, and what needs a nudge — at a glance.
+        </p>
       </header>
 
-      <KpiRow kpis={data.kpis} />
+      {/* Key metrics — a titled card (toggle in its header, like every other
+          period-controlled chart) wrapping the KPI tiles. */}
+      <Card
+        title="Key metrics"
+        action={<PeriodToggle current={kpiPeriod} param="kpi" size="sm" />}
+      >
+        <KpiRow kpis={data.kpis} />
+      </Card>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card
-          title="Leads over time"
-          subtitle={`New inquiries · ${compare.replace("vs ", "").replace("last ", "this ")}`}
-          className="lg:col-span-2"
-        >
-          <LeadsAreaChart points={data.leadsOverTime} />
-        </Card>
-        <Card
-          title="Conversion funnel"
-          subtitle="Furthest stage reached · all time"
-        >
-          <ConversionFunnel stages={data.funnel} />
-        </Card>
+      {/* Pipeline health */}
+      <div className="mt-8">
+        <SectionLabel>Pipeline health</SectionLabel>
+        <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card
+            title="Leads created vs. won"
+            subtitle={
+              leadsPeriod === "week"
+                ? "Weekly · last 10 weeks · won is cumulative"
+                : leadsPeriod === "month"
+                  ? "Monthly · last 6 months · won is cumulative"
+                  : "Quarterly · last 6 quarters · won is cumulative"
+            }
+            action={<PeriodToggle current={leadsPeriod} param="leads" size="sm" />}
+            className="lg:col-span-2"
+          >
+            <LeadsVsWonChart points={data.leadsVsWon} />
+          </Card>
+          <Card
+            title="Conversion funnel"
+            subtitle="Furthest stage reached"
+            scope={allTimeScope}
+          >
+            <ConversionFunnel stages={data.funnel} />
+          </Card>
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card
-          title="Revenue"
-          subtitle={period === "week" ? "Paid orders · last 7 days" : "Paid orders · last 6 months"}
-          className="lg:col-span-2"
-        >
-          <RevenueBarChart bars={data.revenue} />
-        </Card>
-        <Card title="How they heard" subtitle="Lead sources · all time">
-          <SourceBars sources={data.sources} />
-        </Card>
+      {/* Channel performance — both all-time (no natural period dimension). */}
+      <div className="mt-8">
+        <SectionLabel>Channel performance</SectionLabel>
+        <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card
+            title="Source performance"
+            subtitle="Leads created this period · self-reported + captured true source"
+            action={<PeriodToggle current={sourcePeriod} param="source" size="sm" />}
+          >
+            <SourcePerformance rows={data.sourceQuality} />
+          </Card>
+          <Card
+            title="Content attribution"
+            subtitle="Leads, win rate, revenue by blog post"
+            scope={allTimeScope}
+          >
+            <ContentAttributionTable rows={data.contentAttribution} />
+          </Card>
+        </div>
       </div>
 
-      <div className="mt-4">
-        <NeedsAttentionTable rows={data.needsAttention} />
+      {/* Revenue history — own period toggle; a weekly/monthly review tool, not
+          something requiring daily action (the headline Revenue figure is
+          already in the key metrics up top for the daily check). */}
+      <div className="mt-8">
+        <SectionLabel>Revenue history</SectionLabel>
+        <div className="mt-3">
+          <Card
+            title="Revenue"
+            subtitle={
+              revenuePeriod === "week"
+                ? "Paid orders · last 7 days"
+                : "Paid orders · last 6 months"
+            }
+            action={<PeriodToggle current={revenuePeriod} param="revenue" size="sm" />}
+          >
+            <RevenueBarChart bars={data.revenue} />
+          </Card>
+        </div>
+      </div>
+
+      {/* Needs attention — the full table (search/sort/pagination), so it fits
+          best as the page's last, largest "list" section. */}
+      <div className="mt-8">
+        <SectionLabel>Needs attention</SectionLabel>
+        <div className="mt-3">
+          <NeedsAttentionTable
+            rows={data.needsAttention}
+            leads={data.needsAttentionLeads}
+            activity={data.needsAttentionActivity}
+          />
+        </div>
       </div>
     </div>
   );

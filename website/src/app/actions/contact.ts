@@ -70,6 +70,23 @@ export async function submitContact(
   if (companySize) attributes.company_size = companySize;
   if (estimatedBudget) attributes.estimated_budget = estimatedBudget;
 
+  // --- Silent source-capture data (BUILD 3, part 3) — first-touch UTM /
+  // referrer / landing page, attached client-side by `contact-form.tsx` from
+  // sessionStorage seeded at first arrival by `SourceCapture`. Stored as-is
+  // into contacts.metadata (existing jsonb column); dropped when absent
+  // rather than writing empty strings. ---
+  const metadata: Record<string, string> = {};
+  const utmSource = field(formData, "utm_source");
+  const utmMedium = field(formData, "utm_medium");
+  const utmCampaign = field(formData, "utm_campaign");
+  const referrer = field(formData, "referrer");
+  const landingPage = field(formData, "landing_page");
+  if (utmSource) metadata.utm_source = utmSource;
+  if (utmMedium) metadata.utm_medium = utmMedium;
+  if (utmCampaign) metadata.utm_campaign = utmCampaign;
+  if (referrer) metadata.referrer = referrer;
+  if (landingPage) metadata.landing_page = landingPage;
+
   try {
     const supabase = getSupabaseAdmin();
 
@@ -113,6 +130,7 @@ export async function submitContact(
       type,
       message,
       source: "website",
+      metadata,
     });
 
     if (contactError) throw contactError;

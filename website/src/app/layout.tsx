@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { SourceCapture } from "@/components/source-capture";
 import "./globals.css";
 
 const interTight = Inter_Tight({
@@ -28,7 +29,10 @@ export default function RootLayout({
       lang="en"
       className={`${interTight.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SourceCapture />
+        {children}
+      </body>
     </html>
   );
 }

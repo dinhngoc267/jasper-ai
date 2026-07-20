@@ -155,3 +155,103 @@ Success Criteria (how we know it's good, not just done):
 - At 3–5 inquiries a week — my real starting volume from Q2 — this keeps
   up without me dropping to the database by hand, and nothing about the
   design breaks when that number grows.
+
+## BUILD 3 — The dashboard works the pipeline for me
+
+Goal: Turn the read-only dashboard shipped in E3 into the thing that
+actively improves my funnel. After this, the dashboard tells me where
+leads die and how long each stage takes, lets me work a stale lead
+without leaving it, records where every lead truly came from (down to
+the individual blog post), nudges me by email every weekday morning
+before anything goes cold, and every blog post ends with a clear path
+to the contact form. The failure mode this kills: leads decaying
+silently in the pipeline while I look at charts that only describe
+the decay.
+
+Scope — five parts:
+
+1. Funnel diagnostics. Upgrade the existing conversion funnel from raw
+   counts to stage-to-stage conversion rates (of leads that reached
+   contacted, what % reached discovery_call, then proposal, then won),
+   computed from activity_log history. Add median time-in-stage per
+   stage. Add a source-quality table: per source — lead count, win
+   rate, revenue — combining self-reported how_they_heard with the
+   captured true source from part 3.
+
+2. Actionable needs-attention list. Every row in the dashboard's
+   needs-attention list becomes workable in place: open the existing
+   lead drawer, change status, add a note, or "mark followed up".
+   Every action writes an activity_log row — that row is what resets
+   the staleness clock, so follow-up actions and the nudge system in
+   part 4 share one source of truth. Reuse the existing lead drawer
+   and updateLeadStatus pattern; no new tables.
+
+3. Source capture (silent instrumentation). The contact form captures
+   utm_source, utm_medium, utm_campaign, referrer, and first-touch
+   landing page into contacts.metadata (existing jsonb — no
+   migration). First-touch means captured when the visitor first
+   arrives and persisted client-side (e.g. sessionStorage) through to
+   submit — reading the referrer at submit time would only ever say
+   "came from /contact". The lead drawer shows the true source next
+   to the self-reported how_they_heard.
+
+4. Internal daily digest — a morning pulse email, not a plain list.
+   A Vercel Cron job sends one email each weekday morning via Resend
+   to jasper.le@edge8.ai, built with React Email: a mini KPI row (new
+   leads this week, open pipeline, revenue this month, each with a
+   delta vs. the prior period), a compact CSS-rendered funnel with
+   per-stage counts and conversion rates, and every stale lead
+   grouped by urgency with colored badges and deep links into
+   /admin/leads. Visuals are CSS/table-based so the email renders
+   correctly in every client with remote images blocked; styling
+   matches the Apple-minimalist design system. Staleness thresholds
+   per stage (tunable defaults): new_lead untouched > 2 days,
+   contacted > 4 days, discovery_call or proposal > 7 days.
+   "Untouched" = no activity_log row since. Internal-only — no
+   visitor-facing email, so no domain dependency.
+
+5. Blog end-of-post CTA. One shared component appended to every blog
+   post ("Scoping an AI project? Let's talk" → contact form), with
+   the post slug carried into the form's source data so blog
+   attribution works even when the referrer header is stripped.
+
+Deliberately NOT in this build: visitor-facing email sequences
+(blocked on the jasper-ai.com domain purchase), per-person page-view
+or reading-history tracking (disproportionate at current volume —
+revisit alongside Resend email-click tracking in the future email
+build), A/B tests or CTA experiments on the marketing site,
+customizable-widget dashboards (already rejected), lead scoring.
+
+Definition of Done (every box must be true):
+- The dashboard funnel shows stage-to-stage conversion rates and
+  median time-in-stage, derived from activity_log, and the numbers
+  match direct Supabase queries.
+- A source-quality table on the dashboard shows lead count, win rate,
+  and revenue per source.
+- From the needs-attention list I can change a lead's status, add a
+  note, and mark it followed up without navigating away, and each
+  action writes an activity_log row.
+- A form submit that started on a blog post stores that post as the
+  first-touch landing page in contacts.metadata, along with referrer
+  and any UTM parameters, and the lead drawer displays them.
+- Every published blog post ends with the shared CTA block linking to
+  the contact form with the post slug attached.
+- A weekday-morning digest email arrives at jasper.le@edge8.ai
+  showing the KPI row with deltas, the mini funnel with conversion
+  rates, and stale leads grouped by urgency with working deep links —
+  and it reads correctly with remote images blocked. A lead acted on
+  today does not appear in tomorrow's digest.
+- All of it sits behind the existing login; nothing new is reachable
+  logged out.
+
+Success Criteria (how we know it's good, not just done):
+- I can answer "which stage loses the most leads and how long do
+  leads sit there?" from the dashboard alone, without SQL.
+- I can answer "does the blog produce leads, and do they close?" per
+  post, from the source-quality table.
+- A stale lead goes from digest email to acted-on in under a minute:
+  click the deep link, work it from the needs-attention list, done.
+- Following up on a lead today provably removes it from tomorrow's
+  digest — the staleness clock and my actions agree.
+- No lead can silently decay: anything untouched past its threshold
+  appears in both the dashboard and the next morning's email.

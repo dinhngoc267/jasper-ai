@@ -1,5 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ContactForm } from "./contact-form";
+import { getAllPosts, formatPostDate } from "@/lib/blog";
 
 const SERVICES = [
   {
@@ -104,6 +106,8 @@ const FAQS = [
 ];
 
 export default function Home() {
+  const recentPosts = getAllPosts().slice(0, 3);
+
   return (
     <main className="flex-1 font-sans text-[var(--ink)]">
       {/* NAV */}
@@ -298,6 +302,52 @@ export default function Home() {
                 <p className="pb-4 text-sm text-[var(--gray-2)]">{f.a}</p>
               </details>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LATEST POSTS */}
+      <section className="bg-[var(--paper)] px-6 py-24">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight">
+            From the blog
+          </h2>
+          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
+            Notes on scoping, building, and shipping custom AI systems.
+          </p>
+
+          {recentPosts.length > 0 && (
+            <div className="flex flex-col divide-y divide-[var(--rule)]">
+              {recentPosts.map((post) => (
+                <a
+                  key={post.slug}
+                  href={`/blog/${post.slug}`}
+                  className="group py-8 first:pt-0"
+                >
+                  <div className="text-xs font-medium tracking-wide text-[var(--gray-1)]">
+                    {formatPostDate(post.date)}
+                  </div>
+                  <h3 className="mt-2 text-2xl font-semibold leading-snug tracking-tight transition group-hover:text-[var(--blue)]">
+                    {post.title}
+                  </h3>
+                  <p className="mt-2 text-base leading-relaxed text-[var(--gray-2)]">
+                    {post.description}
+                  </p>
+                  <span className="mt-3 inline-block text-sm font-medium text-[var(--blue)]">
+                    Read more →
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/blog"
+              className="text-sm font-medium text-[var(--blue)] transition hover:opacity-80"
+            >
+              View all posts →
+            </Link>
           </div>
         </div>
       </section>

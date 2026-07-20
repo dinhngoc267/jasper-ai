@@ -14,6 +14,7 @@ import {
   type LeadRow,
   type Status,
 } from "@/lib/leads";
+import { trueSourceLabel } from "@/lib/pipeline";
 import { fieldClass } from "@/lib/ui";
 import { Section, KVGrid } from "./kv";
 
@@ -25,6 +26,8 @@ export function LeadDrawer({
   onClose,
   onSelectContact,
   onMoveStage,
+  onAddNote,
+  onMarkFollowedUp,
 }: {
   isOpen: boolean;
   /** The last-opened lead. Kept non-null across the close animation (like
@@ -36,6 +39,12 @@ export function LeadDrawer({
   onClose: () => void;
   onSelectContact: (contactId: string) => void;
   onMoveStage: (status: Status, note: string) => void;
+  /** Save a note without changing the lead's stage. Optional so drawers that
+   * don't need this (none today, but kept opt-in) can omit it. */
+  onAddNote?: (note: string) => void;
+  /** Reset the staleness clock without changing the lead's stage — the
+   * needs-attention list's "mark followed up" action. */
+  onMarkFollowedUp?: (note: string) => void;
 }) {
   const [note, setNote] = useState("");
 
@@ -64,6 +73,18 @@ export function LeadDrawer({
   function handleStageClick(status: Status) {
     if (!lead || status === lead.status) return;
     onMoveStage(status, note);
+    setNote("");
+  }
+
+  function handleSaveNote() {
+    if (!note.trim() || !onAddNote) return;
+    onAddNote(note);
+    setNote("");
+  }
+
+  function handleMarkFollowedUp() {
+    if (!onMarkFollowedUp) return;
+    onMarkFollowedUp(note);
     setNote("");
   }
 
@@ -134,9 +155,32 @@ export function LeadDrawer({
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Optional note about this change — added automatically if you click a stage above"
+                  placeholder="Optional note — added automatically if you click a stage above, or save/mark-followed-up below without changing stage"
                   className={`${fieldClass} mt-2.5 min-h-[52px] resize-y px-3 py-2 text-xs`}
                 />
+                {(onAddNote || onMarkFollowedUp) && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {onAddNote && (
+                      <button
+                        type="button"
+                        onClick={handleSaveNote}
+                        disabled={!note.trim()}
+                        className="rounded-full border border-[var(--rule)] px-3 py-1 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--gray-3)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Save note
+                      </button>
+                    )}
+                    {onMarkFollowedUp && (
+                      <button
+                        type="button"
+                        onClick={handleMarkFollowedUp}
+                        className="rounded-full bg-[var(--green-soft)] px-3 py-1 text-xs font-semibold text-[var(--green)] transition hover:opacity-80"
+                      >
+                        Mark followed up
+                      </button>
+                    )}
+                  </div>
+                )}
               </Section>
 
               <Section title="Inquiry">
@@ -165,6 +209,10 @@ export function LeadDrawer({
                 <KVGrid
                   rows={[
                     ["How they heard", attrs.how_they_heard || "—"],
+                    [
+                      "True source",
+                      trueSourceLabel(lead.metadata) || "— (no capture data)",
+                    ],
                     ["Company size", attrs.company_size || "—"],
                     ["Budget", attrs.estimated_budget || "—"],
                   ]}

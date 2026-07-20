@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllSlugs, getPostBySlug, formatPostDate } from "@/lib/blog";
 import { renderMarkdown } from "@/lib/markdown";
+import { BlogCta } from "@/components/blog-cta";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -44,6 +45,8 @@ export default async function BlogPostPage({ params }: PageProps) {
       </h1>
 
       <div className="mt-10">{renderMarkdown(post.bodyMarkdown)}</div>
+
+      <BlogCta />
     </article>
   );
 }

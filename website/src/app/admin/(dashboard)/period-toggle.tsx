@@ -5,12 +5,22 @@ import { useTransition } from "react";
 import { PERIODS, PERIOD_META, type Period } from "@/lib/period";
 
 /**
- * Week / Month / Quarter segmented control. Writes the choice to `?period=` so
- * the dashboard stays server-rendered and the view is shareable; the server
- * page reads the param and recomputes every windowed metric. Kept client-side
- * only for the click handler — no data lives here.
+ * Week / Month / Quarter segmented control. Each time-series chart owns its own
+ * instance, writing to a distinct search param (e.g. `?revenue=quarter`) so the
+ * dashboard stays server-rendered and shareable and each chart's period is
+ * independent. Kept client-side only for the click handler — no data lives
+ * here. `scroll: false` keeps the page from jumping when a mid-page chart's
+ * toggle re-renders.
  */
-export function PeriodToggle({ current }: { current: Period }) {
+export function PeriodToggle({
+  current,
+  param = "period",
+  size = "md",
+}: {
+  current: Period;
+  param?: string;
+  size?: "sm" | "md";
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -19,11 +29,14 @@ export function PeriodToggle({ current }: { current: Period }) {
   function select(period: Period) {
     if (period === current) return;
     const params = new URLSearchParams(searchParams.toString());
-    params.set("period", period);
+    params.set(param, period);
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     });
   }
+
+  const btn =
+    size === "sm" ? "rounded-md px-2.5 py-1 text-[12px]" : "rounded-lg px-3.5 py-1.5 text-[13px]";
 
   return (
     <div
@@ -41,7 +54,7 @@ export function PeriodToggle({ current }: { current: Period }) {
             type="button"
             aria-pressed={active}
             onClick={() => select(period)}
-            className={`rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition ${
+            className={`${btn} font-medium transition ${
               active
                 ? "bg-[var(--ink)] text-white"
                 : "text-[var(--gray-2)] hover:text-[var(--ink)]"

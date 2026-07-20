@@ -17,7 +17,7 @@ async function fetchLeads(): Promise<LeadRow[] | null> {
     const { data, error } = await supabase
       .from("contacts")
       .select(
-        "id, person_id, type, subject, message, source, status, created_at, people ( id, name, email, company, attributes, created_at )"
+        "id, person_id, type, subject, message, source, status, created_at, metadata, people ( id, name, email, company, attributes, created_at )"
       )
       .order("created_at", { ascending: false });
 

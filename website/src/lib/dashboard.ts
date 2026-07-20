@@ -18,14 +18,27 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
   type ActivityLogRow,
+  type LeadRow,
 } from "@/lib/leads";
 import { PERIOD_META, type Period } from "@/lib/period";
+import {
+  DAY,
+  countInWindow,
+  dayStart,
+  deltaText,
+  formatUsd,
+  buildFunnelStats,
+  buildSourceQuality,
+  computeStaleness,
+  type ContactMetadata,
+  type SourceQualityRow,
+} from "@/lib/pipeline";
 
 // Re-export the client-safe period helpers so server consumers can import
 // everything dashboard-related from one place.
 export { PERIODS, PERIOD_META, parsePeriod, type Period } from "@/lib/period";
-
-const DAY = 24 * 60 * 60 * 1000;
+export { formatUsd } from "@/lib/pipeline";
+export type { SourceQualityRow } from "@/lib/pipeline";
 
 // ── Public shapes ─────────────────────────────────────────────────────────────
 export type Kpi = {
@@ -40,9 +53,28 @@ export type Kpi = {
 };
 
 export type TimePoint = { label: string; value: number };
-export type FunnelStage = { key: string; label: string; count: number; color: string };
+export type FunnelStage = {
+  key: string;
+  label: string;
+  count: number;
+  color: string;
+  /** % of the previous stage's count that reached this stage; null for the
+   * first stage. Derived from activity_log history — see `buildFunnelStats`
+   * in `lib/pipeline.ts`. */
+  conversionFromPrev: number | null;
+  /** Median days spent in this stage, from completed stays only; null when
+   * no contact has ever exited it yet. */
+  medianDaysInStage: number | null;
+};
 export type RevenueBar = { label: string; cents: number };
 export type SourceBar = { label: string; count: number };
+export type LeadsVsWonPoint = { label: string; leads: number; won: number };
+export type ContentAttributionRow = {
+  landingPage: string;
+  leadCount: number;
+  winRate: number;
+  revenueCents: number;
+};
 export type NeedsAttentionRow = {
   id: string;
   name: string;
@@ -52,67 +84,57 @@ export type NeedsAttentionRow = {
   statusLabel: string;
   statusColor: string;
   idleDays: number;
+  thresholdDays: number;
 };
 
 export type DashboardData = {
   kpis: Kpi[];
   leadsOverTime: TimePoint[];
+  leadsVsWon: LeadsVsWonPoint[];
   funnel: FunnelStage[];
   revenue: RevenueBar[];
   sources: SourceBar[];
+  sourceQuality: SourceQualityRow[];
+  contentAttribution: ContentAttributionRow[];
   needsAttention: NeedsAttentionRow[];
+  /** Full lead rows for the contacts in `needsAttention`, in the same shape
+   * the Leads page's drawer expects — lets the dashboard render the exact
+   * same `LeadDrawer` in place instead of navigating away. */
+  needsAttentionLeads: LeadRow[];
+  /** activity_log rows scoped to those same contacts. */
+  needsAttentionActivity: ActivityLogRow[];
 };
 
 // ── Raw row shapes (minimal columns) ─────────────────────────────────────────
 type ContactRow = {
   id: string;
+  person_id: string;
   type: string;
+  subject: string | null;
+  message: string | null;
+  source: string | null;
   status: string;
   created_at: string;
-  people: { name: string | null; email: string } | null;
+  metadata: Record<string, unknown> | null;
+  people: {
+    id: string;
+    name: string | null;
+    email: string;
+    company: string | null;
+    attributes: { how_they_heard?: string } | null;
+    created_at: string;
+  } | null;
 };
-type OrderRow = { amount_cents: number; status: string; created_at: string };
+type OrderRow = { person_id: string; amount_cents: number; status: string; created_at: string };
 type PersonRow = {
+  id: string;
   ok_to_contact: boolean;
   created_at: string;
   attributes: { how_they_heard?: string } | null;
 };
 
-// ── Formatting ────────────────────────────────────────────────────────────────
-/** Whole-dollar display from cents, e.g. 8900000 -> "$89,000". */
-export function formatUsd(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(cents / 100));
-}
-
-function deltaText(cur: number, prev: number, suffix: string): { delta: number; text: string } {
-  const diff = cur - prev;
-  if (prev === 0) {
-    return { delta: diff, text: `${diff >= 0 ? "+" : ""}${diff} ${suffix}` };
-  }
-  const pct = Math.round((diff / prev) * 100);
-  return { delta: diff, text: `${pct >= 0 ? "+" : ""}${pct}% ${suffix}` };
-}
 
 // ── Bucketing helpers ─────────────────────────────────────────────────────────
-function dayStart(ms: number): number {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-function countInWindow(rows: { created_at: string }[], startMs: number, endMs: number): number {
-  let n = 0;
-  for (const r of rows) {
-    const t = Date.parse(r.created_at);
-    if (t >= startMs && t < endMs) n++;
-  }
-  return n;
-}
-
 function shortDate(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
@@ -194,42 +216,103 @@ function buildLeadsOverTime(contacts: ContactRow[], period: Period, now: number)
 }
 
 /**
- * Conversion funnel — fixed all-time snapshot, unaffected by the period toggle.
- * Each contact is counted at the FURTHEST stage it ever reached: the max rank
- * across its current status plus every from/to status in its activity_log
- * history. A contact at each stage is also counted at every earlier stage
- * (cumulative), and never double-counted within a stage.
+ * Leads created vs. won — bucket granularity reflows to the period toggle,
+ * same pattern as `buildRevenue` below: week -> weekly buckets (~10 weeks),
+ * month/quarter -> monthly or quarterly buckets respectively. Two series
+ * sharing one count axis on purpose: leads created per bucket (a flow), and
+ * won deals cumulative all-time (a running total) — deliberately not a
+ * dual-axis chart, since overlaying two different scales invites false
+ * visual correlation. A contact's "won at" timestamp is the earliest
+ * activity_log row transitioning it `to_status: "won"`; contacts that are
+ * currently won but have no such row (e.g. seeded pre-BUILD-3) fall back to
+ * their `created_at` so they still count somewhere rather than vanishing.
  */
-const FUNNEL_ORDER = ["new_lead", "contacted", "discovery_call", "proposal", "won"] as const;
-const RANK: Record<string, number> = Object.fromEntries(
-  FUNNEL_ORDER.map((s, i) => [s, i])
-);
+function buildLeadsVsWon(
+  contacts: ContactRow[],
+  activity: ActivityLogRow[],
+  period: Period,
+  now: number
+): LeadsVsWonPoint[] {
+  const todayStart = dayStart(now);
+  const anchorEnd = todayStart + DAY;
 
-function buildFunnel(contacts: ContactRow[], activity: ActivityLogRow[]): FunnelStage[] {
-  const byContact = new Map<string, string[]>();
-  for (const c of contacts) byContact.set(c.id, [c.status]);
+  const wonAt = new Map<string, number>();
+  for (const c of contacts) {
+    if (c.status === "won") wonAt.set(c.id, Date.parse(c.created_at));
+  }
   for (const a of activity) {
-    const list = byContact.get(a.contact_id);
-    if (!list) continue; // activity for a contact we didn't load — ignore
-    list.push(a.to_status);
-    if (a.from_status) list.push(a.from_status);
+    if (a.to_status !== "won" || !wonAt.has(a.contact_id)) continue;
+    const t = Date.parse(a.created_at);
+    if (t < wonAt.get(a.contact_id)!) wonAt.set(a.contact_id, t);
   }
+  const wonTimestamps = [...wonAt.values()].sort((a, b) => a - b);
 
-  const counts = FUNNEL_ORDER.map(() => 0);
-  for (const statuses of byContact.values()) {
-    let furthest = -1;
-    for (const s of statuses) {
-      const r = RANK[s];
-      if (r !== undefined && r > furthest) furthest = r;
+  const points: LeadsVsWonPoint[] = [];
+
+  if (period === "month") {
+    // Monthly buckets — last 6 calendar months, matching `buildRevenue`'s
+    // month/quarter window for consistency across the two charts.
+    const ref = new Date(now);
+    for (let m = 5; m >= 0; m--) {
+      const start = new Date(ref.getFullYear(), ref.getMonth() - m, 1).getTime();
+      const end = new Date(ref.getFullYear(), ref.getMonth() - m + 1, 1).getTime();
+      const leads = countInWindow(contacts, start, end);
+      const won = wonTimestamps.filter((t) => t < end).length;
+      points.push({
+        label: new Date(start).toLocaleDateString("en-US", { month: "short" }),
+        leads,
+        won,
+      });
     }
-    for (let i = 0; i <= furthest; i++) counts[i]++;
+    return points;
   }
 
-  return FUNNEL_ORDER.map((key, i) => ({
-    key,
-    label: STATUS_LABELS[key] ?? key,
-    count: counts[i],
-    color: STATUS_COLORS[key],
+  if (period === "quarter") {
+    // Quarterly buckets — last 6 calendar quarters.
+    const ref = new Date(now);
+    const refQuarter = Math.floor(ref.getMonth() / 3);
+    for (let q = 5; q >= 0; q--) {
+      const totalQuarters = ref.getFullYear() * 4 + refQuarter - q;
+      const year = Math.floor(totalQuarters / 4);
+      const quarter = totalQuarters % 4;
+      const start = new Date(year, quarter * 3, 1).getTime();
+      const end = new Date(year, quarter * 3 + 3, 1).getTime();
+      const leads = countInWindow(contacts, start, end);
+      const won = wonTimestamps.filter((t) => t < end).length;
+      points.push({ label: `Q${quarter + 1} '${String(year).slice(2)}`, leads, won });
+    }
+    return points;
+  }
+
+  // Week (default) — weekly buckets, last 10 weeks.
+  const WEEKS = 10;
+  for (let w = WEEKS - 1; w >= 0; w--) {
+    const end = anchorEnd - w * 7 * DAY;
+    const start = end - 7 * DAY;
+    const leads = countInWindow(contacts, start, end);
+    const won = wonTimestamps.filter((t) => t < end).length;
+    points.push({ label: shortDate(start), leads, won });
+  }
+  return points;
+}
+
+/**
+ * Conversion funnel — an all-time snapshot of the furthest stage each lead has
+ * reached (no period dimension: a funnel is "who is in my pipeline right now",
+ * not "what happened this week"; see the design notes). Stage-to-stage
+ * conversion rates and median time-in-stage are computed in `lib/pipeline.ts`
+ * (the shared `buildFunnelStats`, also used by the digest email); this just
+ * joins in the display label/color.
+ */
+function buildFunnel(contacts: ContactRow[], activity: ActivityLogRow[]): FunnelStage[] {
+  const stats = buildFunnelStats(contacts, activity);
+  return stats.map((s) => ({
+    key: s.key,
+    label: STATUS_LABELS[s.key] ?? s.key,
+    count: s.count,
+    color: STATUS_COLORS[s.key],
+    conversionFromPrev: s.conversionFromPrev,
+    medianDaysInStage: s.medianDaysInStage,
   }));
 }
 
@@ -285,26 +368,88 @@ function buildSources(people: PersonRow[]): SourceBar[] {
     .sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Content attribution — same aggregation shape as `buildSourceQuality`
+ * (lead count, win rate, revenue), grouped by the first-touch
+ * `metadata.landing_page` blog slug instead of source. Answers "does this
+ * specific post produce leads that close?". Only contacts whose captured
+ * landing page is a blog post (`/blog/<slug>`) are included; everything
+ * else (direct, non-blog pages) has no row here since there's no post to
+ * attribute it to. Revenue attribution mirrors `buildSourceQuality`: a
+ * person's paid orders are attributed to their FIRST contact's landing
+ * page.
+ */
+function buildContentAttribution(
+  contacts: ContactRow[],
+  orders: OrderRow[]
+): ContentAttributionRow[] {
+  function slugFor(c: ContactRow): string | null {
+    const landingPage = (c.metadata as ContactMetadata | null)?.landing_page;
+    if (!landingPage?.startsWith("/blog/")) return null;
+    return landingPage.replace(/^\/blog\//, "").replace(/\/$/, "");
+  }
+
+  const firstContactByPerson = new Map<string, ContactRow>();
+  for (const c of contacts) {
+    const existing = firstContactByPerson.get(c.person_id);
+    if (!existing || Date.parse(c.created_at) < Date.parse(existing.created_at)) {
+      firstContactByPerson.set(c.person_id, c);
+    }
+  }
+
+  const bySlug = new Map<string, { leadCount: number; won: number; revenueCents: number }>();
+  for (const c of contacts) {
+    const slug = slugFor(c);
+    if (!slug) continue;
+    const entry = bySlug.get(slug) ?? { leadCount: 0, won: 0, revenueCents: 0 };
+    entry.leadCount++;
+    if (c.status === "won") entry.won++;
+    bySlug.set(slug, entry);
+  }
+
+  const personSlug = new Map<string, string>();
+  for (const [personId, contact] of firstContactByPerson) {
+    const slug = slugFor(contact);
+    if (slug) personSlug.set(personId, slug);
+  }
+  for (const o of orders) {
+    if (o.status !== "paid") continue;
+    const slug = personSlug.get(o.person_id);
+    if (!slug) continue;
+    const entry = bySlug.get(slug) ?? { leadCount: 0, won: 0, revenueCents: 0 };
+    entry.revenueCents += o.amount_cents;
+    bySlug.set(slug, entry);
+  }
+
+  return [...bySlug.entries()]
+    .map(([landingPage, v]) => ({
+      landingPage,
+      leadCount: v.leadCount,
+      winRate: v.leadCount > 0 ? Math.round((v.won / v.leadCount) * 100) : 0,
+      revenueCents: v.revenueCents,
+    }))
+    .sort((a, b) => b.leadCount - a.leadCount);
+}
+
+/**
+ * Open leads past their PER-STAGE staleness threshold (part 4's tunable
+ * defaults: new_lead > 2 days, contacted > 4 days, discovery_call/proposal
+ * > 7 days) — see `computeStaleness` in `lib/pipeline.ts`, the single source
+ * of truth shared with the daily digest so the dashboard and the email agree
+ * on exactly which leads are stale.
+ */
 function buildNeedsAttention(
   contacts: ContactRow[],
   activity: ActivityLogRow[],
   now: number
 ): NeedsAttentionRow[] {
-  const lastActivityMs = new Map<string, number>();
-  for (const a of activity) {
-    const t = Date.parse(a.created_at);
-    const prev = lastActivityMs.get(a.contact_id) ?? 0;
-    if (t > prev) lastActivityMs.set(a.contact_id, t);
-  }
+  const staleness = computeStaleness(contacts, activity, now);
 
   const rows: NeedsAttentionRow[] = [];
-  for (const c of contacts) {
-    if (c.status === "won" || c.status === "lost") continue;
-    // Most recent activity, falling back to when the lead came in — the exact
-    // staleness fallback used by the leads board (`lastTouchedMs` in leads.ts).
-    const touched = lastActivityMs.get(c.id) ?? Date.parse(c.created_at);
-    const idleDays = Math.floor((now - touched) / DAY);
-    if (idleDays < 7) continue;
+  for (const s of staleness) {
+    if (!s.isStale) continue;
+    const c = contacts.find((x) => x.id === s.id);
+    if (!c) continue;
     rows.push({
       id: c.id,
       name: c.people?.name || "—",
@@ -313,7 +458,8 @@ function buildNeedsAttention(
       status: c.status,
       statusLabel: STATUS_LABELS[c.status] ?? c.status,
       statusColor: STATUS_COLORS[c.status] ?? "var(--gray-1)",
-      idleDays,
+      idleDays: s.idleDays,
+      thresholdDays: s.thresholdDays,
     });
   }
   rows.sort((a, b) => b.idleDays - a.idleDays);
@@ -322,6 +468,25 @@ function buildNeedsAttention(
   // are missing. `needs-attention-table.tsx` renders every row returned here
   // and prints the total count, so nothing is ever silently hidden.
   return rows;
+}
+
+/** Full `LeadRow`-shaped contacts for a set of ids, for the dashboard's
+ * in-place lead drawer (part 2). */
+function toLeadRows(contacts: ContactRow[], ids: Set<string>): LeadRow[] {
+  return contacts
+    .filter((c) => ids.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      person_id: c.person_id,
+      type: c.type,
+      subject: c.subject,
+      message: c.message,
+      source: c.source,
+      status: c.status,
+      created_at: c.created_at,
+      metadata: c.metadata as LeadRow["metadata"],
+      people: c.people,
+    }));
 }
 
 // ── Fetching ──────────────────────────────────────────────────────────────────
@@ -336,10 +501,23 @@ async function safe<T>(fn: () => Promise<T>, label: string, fallback: T): Promis
 
 /**
  * Load every dashboard metric for the given period. The funnel is all-time and
- * ignores `period`; the KPIs, leads-over-time, and revenue chart all reflow to
- * the selected window.
+ * ignores `period`; the KPIs, leads-over-time, leads-vs-won chart, and revenue
+ * chart all reflow to the selected window.
  */
-export async function fetchDashboardData(period: Period): Promise<DashboardData> {
+/** Independent period per time-series widget — each chart owns its own toggle,
+ * so revenue can be viewed by month while leads-vs-won is by week. The funnel
+ * and content attribution remain snapshots (no period); source performance is
+ * a lead-cohort view (leads created in `source`'s window). */
+export type DashboardPeriods = {
+  kpi: Period;
+  leads: Period;
+  revenue: Period;
+  source: Period;
+};
+
+export async function fetchDashboardData(
+  periods: DashboardPeriods
+): Promise<DashboardData> {
   const now = Date.now();
   const supabase = getSupabaseAdmin();
 
@@ -348,7 +526,9 @@ export async function fetchDashboardData(period: Period): Promise<DashboardData>
       async () => {
         const { data, error } = await supabase
           .from("contacts")
-          .select("id, type, status, created_at, people ( name, email )");
+          .select(
+            "id, person_id, type, subject, message, source, status, created_at, metadata, people ( id, name, email, company, attributes, created_at )"
+          );
         if (error) throw error;
         return (data as unknown as ContactRow[]) ?? [];
       },
@@ -370,7 +550,7 @@ export async function fetchDashboardData(period: Period): Promise<DashboardData>
       async () => {
         const { data, error } = await supabase
           .from("orders")
-          .select("amount_cents, status, created_at");
+          .select("person_id, amount_cents, status, created_at");
         if (error) throw error;
         return (data as unknown as OrderRow[]) ?? [];
       },
@@ -381,7 +561,7 @@ export async function fetchDashboardData(period: Period): Promise<DashboardData>
       async () => {
         const { data, error } = await supabase
           .from("people")
-          .select("ok_to_contact, created_at, attributes");
+          .select("id, ok_to_contact, created_at, attributes");
         if (error) throw error;
         return (data as unknown as PersonRow[]) ?? [];
       },
@@ -390,12 +570,34 @@ export async function fetchDashboardData(period: Period): Promise<DashboardData>
     ),
   ]);
 
+  const needsAttention = buildNeedsAttention(contacts, activity, now);
+  const needsAttentionIds = new Set(needsAttention.map((r) => r.id));
+  const needsAttentionLeads = toLeadRows(contacts, needsAttentionIds);
+  const needsAttentionActivity = activity.filter((a) => needsAttentionIds.has(a.contact_id));
+
+  // Source performance is a lead cohort scoped to its own toggle: leads created
+  // in the trailing [now - days, now) window (same convention as the KPIs).
+  const sourceWindow = {
+    start: now - PERIOD_META[periods.source].days * DAY,
+    end: now,
+  };
+
   return {
-    kpis: buildKpis(contacts, orders, people, period, now),
-    leadsOverTime: buildLeadsOverTime(contacts, period, now),
+    kpis: buildKpis(contacts, orders, people, periods.kpi, now),
+    leadsOverTime: buildLeadsOverTime(contacts, periods.leads, now),
+    leadsVsWon: buildLeadsVsWon(contacts, activity, periods.leads, now),
     funnel: buildFunnel(contacts, activity),
-    revenue: buildRevenue(orders, period, now),
+    revenue: buildRevenue(orders, periods.revenue, now),
     sources: buildSources(people),
-    needsAttention: buildNeedsAttention(contacts, activity, now),
+    sourceQuality: buildSourceQuality(
+      contacts as unknown as Parameters<typeof buildSourceQuality>[0],
+      people,
+      orders,
+      sourceWindow
+    ),
+    contentAttribution: buildContentAttribution(contacts, orders),
+    needsAttention,
+    needsAttentionLeads,
+    needsAttentionActivity,
   };
 }

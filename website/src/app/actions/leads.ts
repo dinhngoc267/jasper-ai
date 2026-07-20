@@ -102,3 +102,76 @@ export async function updateLeadStatus(
     };
   }
 }
+
+/**
+ * Shared helper for the two note-only actions below: insert one
+ * `activity_log` row without changing `contacts.status` (from_status ===
+ * to_status). This is what resets the staleness clock (`computeStaleness` in
+ * `lib/pipeline.ts`) without moving the lead to a different stage — used by
+ * "add a note" and "mark followed up" from the lead drawer.
+ */
+async function logActivityWithoutStatusChange(
+  contactId: string,
+  note: string
+): Promise<UpdateLeadStatusResult> {
+  if (!contactId) {
+    return { success: false, error: "Missing lead id." };
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: current, error: readError } = await supabase
+      .from("contacts")
+      .select("status, person_id")
+      .eq("id", contactId)
+      .single();
+
+    if (readError) throw readError;
+
+    const status = current.status as string;
+    const personId = current.person_id as string;
+
+    const { error: logError } = await supabase.from("activity_log").insert({
+      contact_id: contactId,
+      person_id: personId,
+      from_status: status,
+      to_status: status,
+      actor: "admin",
+      note,
+    });
+
+    if (logError) throw logError;
+
+    return { success: true };
+  } catch (err) {
+    console.error("[leads] failed to log activity:", err);
+    return {
+      success: false,
+      error: "Couldn't save that. Please try again.",
+    };
+  }
+}
+
+/** Add a note to a lead without changing its pipeline stage. */
+export async function addLeadNote(
+  contactId: string,
+  note: string
+): Promise<UpdateLeadStatusResult> {
+  const trimmed = note.trim();
+  if (!trimmed) {
+    return { success: false, error: "Note can't be empty." };
+  }
+  return logActivityWithoutStatusChange(contactId, trimmed);
+}
+
+/** Mark a lead as followed up today, without changing its pipeline stage —
+ * this is what resets the staleness clock when a lead needed a nudge but
+ * hasn't moved stage yet. */
+export async function markLeadFollowedUp(
+  contactId: string,
+  note?: string
+): Promise<UpdateLeadStatusResult> {
+  const trimmed = note?.trim();
+  return logActivityWithoutStatusChange(contactId, trimmed || "Marked as followed up");
+}

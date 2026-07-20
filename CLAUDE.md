@@ -15,7 +15,26 @@
 - Next.js 16 (App Router, TypeScript, Tailwind v4, shadcn/ui) in `website/`
 - Supabase (data, auth, subscribers) — project `jasper-ai`
 - Vercel (hosting; deploys ONLY via `git push` → CI/CD)
-- Resend (email — blocked until a real domain is bought and verified)
+- Resend (email — visitor-facing email blocked until a real domain is bought
+  and verified; internal digest email to jasper.le@edge8.ai works today in
+  sandbox mode, no domain dependency)
+
+## Build status
+- **Build 1 — Prove the loop:** ✅
+- **Build 2 — Run the business from /admin:** ✅ (People, Contacts pipeline,
+  Orders, Newsletter all live behind login)
+- **Build 3 — The dashboard works the pipeline for me:** ✅
+  - Funnel diagnostics (stage-to-stage conversion, median time-in-stage,
+    source-quality table): ✅
+  - Actionable needs-attention list (status change, note, mark followed up
+    in place, each writing an activity_log row): ✅
+  - Source capture live (first-touch UTM/referrer/landing page into
+    `contacts.metadata`, shown in the lead drawer): ✅
+  - Daily digest cron live (Vercel Cron weekdays 15:00 UTC / 8am PDT via
+    `website/vercel.json` → `website/src/app/api/cron/digest/route.tsx`,
+    React Email, internal-only to jasper.le@edge8.ai): ✅
+  - Blog end-of-post CTA (shared component, slug carried into source data): ✅
+  - QA-REPORT: `docs/engineering/changes/2026-07/2026-07-17-build3-pipeline-dashboard/QA-REPORT.md`
 
 ## Folder structure
 ```
