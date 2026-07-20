@@ -20,9 +20,29 @@
   sandbox mode, no domain dependency)
 
 ## Build status
-- **Build 1 — Prove the loop:** ✅
+- **Build 1 — Prove the loop:** ✅ (verified live 2026-07-14)
+  - Contact form on the live site upserts a `People` row (by email) + linked
+    `Contacts` row, landing in `new_lead` status: ✅
+  - Custom attributes (`how_they_heard`, `company_size`, `estimated_budget`)
+    saved in the `attributes` jsonb: ✅
+  - `/admin` gated behind Supabase Auth (email/password, seeded
+    `jasper.le@edge8.ai`): ✅
+  - Admin leads view (Kanban board + per-lead drawer), newest-first: ✅
+  - Schema: `website/supabase/migrations/0001_build1_people_contacts.sql`
 - **Build 2 — Run the business from /admin:** ✅ (People, Contacts pipeline,
   Orders, Newsletter all live behind login)
+  - `activity_log` table + `updateLeadStatus` action driving the Kanban
+    board (migration `0002`): ✅
+  - Orders table + admin Orders page (lookup-by-email, record purchase,
+    newest-first) (migration `0003`): ✅
+  - People directory: searchable by name/email/company, per-person drawer
+    with full history: ✅
+  - Newsletter page: everyone with `ok_to_contact = true`: ✅
+  - `/admin` restructured into a `(dashboard)` route group with shared
+    nav/logout: ✅
+  - Resend wired: best-effort internal notification to jasper.le@edge8.ai on
+    every submit (non-blocking, sandbox mode): ✅
+  - Detail + open follow-ups tracked in `docs/product/epic-status.md` (E2)
 - **Build 3 — The dashboard works the pipeline for me:** ✅
   - Funnel diagnostics (stage-to-stage conversion, median time-in-stage,
     source-quality table): ✅
