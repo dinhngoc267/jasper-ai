@@ -133,6 +133,8 @@ Status glyphs: 🔄 in flight · ✅ done · ⏳ partially done · ☐ planned �
 - Also pending Desktop registration as of this Phase 1 pass: `linkedin-repurpose-weekly` (content of `website/scripts/E-linkedin-repurpose-routine.SKILL.md`) and the `writer-weekly` cadence change from weekly to biweekly.
 - Observe one full live cycle of each routine once registered — spot-check the first automated PR each opens.
 
+**Ops health check:** ✅ CI/CD and production healthy — 2026-07-20 06:03 (latest Vercel production deployment READY, `https://jasper-ai-neon.vercel.app` returned HTTP 200; no `.github/workflows` configured in this repo so no CI runs to check; no open PRs)
+
 **Definition of done:** E3 dashboard numbers (including the needs-attention count) match direct Supabase queries with a QA-REPORT filed; E4.1 runs on schedule and writes a durable weekly log with the leak flagged (never auto-fixed); E4.2 makes stale leads (≥7 days) impossible to miss on the dashboard itself; E4.3's precursor post is live on `/blog` before its automation is built, and its automation stops at a staged commit, never an autonomous push.
 
 **Out of scope (explicit):** email nurture of any kind (newsletter sends, sequences, visitor confirmation email) — blocked until `jasper-ai.com` is purchased and verified as a Resend sending domain; paid acquisition; any new dashboard feature beyond what E4.1/E4.2 and the E3 verification step force.
