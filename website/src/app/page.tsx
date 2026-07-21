@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ContactForm } from "./contact-form";
+import { PostsRail } from "./posts-rail";
+import { BuildStoryBadge } from "./build-story-badge";
 import { getAllPosts, formatPostDate } from "@/lib/blog";
 
 const SERVICES = [
@@ -105,11 +107,25 @@ const FAQS = [
   },
 ];
 
-export default function Home() {
-  const recentPosts = getAllPosts().slice(0, 3);
+// The recent-posts teaser reads `posts` from Supabase — force dynamic
+// rendering (no database at `next build` time) so a new approval in
+// /admin/content shows up without a redeploy.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const recentPosts = (await getAllPosts()).slice(0, 3);
+  // Serialize to a plain shape so the client rail never pulls @/lib/blog
+  // (and its server-only Supabase client) into the browser bundle.
+  const railPosts = recentPosts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    dateLabel: formatPostDate(post.date),
+  }));
 
   return (
     <main className="flex-1 font-sans text-[var(--ink)]">
+      <BuildStoryBadge />
       {/* NAV */}
       <div className="sticky top-0 z-20 border-b border-[var(--rule)] bg-white/72 backdrop-blur-xl backdrop-saturate-150">
         <nav className="mx-auto flex h-[52px] max-w-5xl items-center justify-between px-6">
@@ -232,7 +248,7 @@ export default function Home() {
       {/* WHY — problem / positioning */}
       <section id="why" className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-24">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             You&apos;ve probably seen AI projects stall.
           </h2>
           <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
@@ -256,7 +272,7 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section id="how" className="scroll-mt-[52px] bg-[var(--paper)] px-6 py-24">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             How it works
           </h2>
           <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
@@ -280,7 +296,7 @@ export default function Home() {
       {/* FAQ */}
       <section id="faq" className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-24">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             Common questions
           </h2>
           <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
@@ -308,43 +324,28 @@ export default function Home() {
 
       {/* LATEST POSTS */}
       <section className="bg-[var(--paper)] px-6 py-24">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
-            From the blog
-          </h2>
-          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-[var(--gray-2)]">
-            Notes on scoping, building, and shipping custom AI systems.
-          </p>
+        <div className="relative mx-auto max-w-5xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              From the blog
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-[var(--gray-2)]">
+              Notes on scoping, building, and shipping custom AI systems.
+            </p>
+          </div>
+          <Link
+            href="/blog"
+            className="absolute right-0 top-1.5 hidden text-sm font-medium text-[var(--blue)] transition hover:opacity-80 sm:inline"
+          >
+            View all posts →
+          </Link>
 
-          {recentPosts.length > 0 && (
-            <div className="flex flex-col divide-y divide-[var(--rule)]">
-              {recentPosts.map((post) => (
-                <a
-                  key={post.slug}
-                  href={`/blog/${post.slug}`}
-                  className="group py-8 first:pt-0"
-                >
-                  <div className="text-xs font-medium tracking-wide text-[var(--gray-1)]">
-                    {formatPostDate(post.date)}
-                  </div>
-                  <h3 className="mt-2 text-2xl font-semibold leading-snug tracking-tight transition group-hover:text-[var(--blue)]">
-                    {post.title}
-                  </h3>
-                  <p className="mt-2 text-base leading-relaxed text-[var(--gray-2)]">
-                    {post.description}
-                  </p>
-                  <span className="mt-3 inline-block text-sm font-medium text-[var(--blue)]">
-                    Read more →
-                  </span>
-                </a>
-              ))}
-            </div>
-          )}
+          {railPosts.length > 0 && <PostsRail posts={railPosts} />}
 
-          <div className="mt-10 text-center">
+          <div className="mt-8 text-center sm:hidden">
             <Link
               href="/blog"
-              className="text-sm font-medium text-[var(--blue)] transition hover:opacity-80"
+              className="text-sm font-medium text-[var(--blue)]"
             >
               View all posts →
             </Link>
@@ -352,28 +353,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA BAND */}
-      <section className="bg-[var(--paper)] px-6 py-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-3xl bg-[var(--ink)] px-8 py-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white">
-              Ready when you are.
-            </h2>
-            <p className="mx-auto mt-2 mb-6 max-w-md text-[var(--gray-3)]">
-              Tell me what you&apos;re trying to build. Worst case, you leave the
-              discovery call knowing what not to build.
-            </p>
-            <a
-              href="#contact"
-              className="inline-block rounded-full bg-white px-7 py-3 font-semibold text-[var(--ink)] transition hover:opacity-90"
-            >
-              Start a conversation
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* CONTACT */}
+      {/* CONTACT — the single closing moment; the old dark CTA band lived here
+          and duplicated this same call, so its reassurance line moved in. */}
       <section
         id="contact"
         className="scroll-mt-[52px] bg-[var(--cream)] px-6 py-[88px]"
@@ -382,8 +363,9 @@ export default function Home() {
           <h2 className="text-center text-4xl font-semibold tracking-tight">
             Start a conversation
           </h2>
-          <p className="mt-2.5 mb-10 text-center text-lg text-[var(--gray-2)]">
-            Tell me what you&apos;re building. I reply within one business day.
+          <p className="mx-auto mt-2.5 mb-10 max-w-lg text-center text-lg text-[var(--gray-2)]">
+            Tell me what you&apos;re building. I reply within one business day —
+            worst case, you leave the discovery call knowing what not to build.
           </p>
           <ContactForm />
         </div>
