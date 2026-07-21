@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jasper AI — Project Status</title>
+<style>
+  :root {
+    --primary: #1d4ed8;
+    --accent: #ea580c;
+    --bg: #ffffff;
+    --bg-alt: #f4f5f7;
+    --text: #17181c;
+    --text-muted: #55596b;
+    --border: #e2e4ea;
+    --ok: #15803d;
+    --warn: #b45309;
+    --blocked: #b91c1c;
+    --pending: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14151a;
+      --bg-alt: #1b1c22;
+      --text: #edeef2;
+      --text-muted: #a4a8b8;
+      --border: #2c2e38;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14151a; --bg-alt: #1b1c22; --text: #edeef2; --text-muted: #a4a8b8; --border: #2c2e38;
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-alt: #f4f5f7; --text: #17181c; --text-muted: #55596b; --border: #e2e4ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  section { margin-top: 3rem; }
+  .hero { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: 2.1rem; margin: 0 0 0.5rem; }
+  .hero p { color: var(--text-muted); max-width: 68ch; margin: 0.4rem 0; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1.5rem; }
+  .stat { background: var(--bg-alt); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+  .stat .n { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+  .stat .l { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .table-scroll table { min-width: 720px; }
+  .dots { letter-spacing: 2px; white-space: nowrap; }
+  .dot-on { color: var(--primary); }
+  .dot-off { color: var(--border); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1.25rem; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); } }
+  .card { background: var(--bg-alt); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .card h3 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+  .card .thesis { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem; }
+  .pill { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pill-done { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .pill-progress { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+  .bar-outer { background: var(--border); border-radius: 999px; height: 8px; margin: 0.6rem 0 0.9rem; overflow: hidden; }
+  .bar-inner { background: var(--primary); height: 100%; }
+  .meta { font-size: 0.85rem; margin: 0.25rem 0; }
+  .meta b { color: var(--text-muted); font-weight: 600; }
+  .meta ul { margin: 0.2rem 0 0.5rem 1.1rem; padding: 0; }
+  .deep-link { font-size: 0.82rem; }
+  a { color: var(--primary); }
+  .log-day { margin-top: 1rem; }
+  .log-day h4 { margin: 0 0 0.4rem; font-size: 0.95rem; color: var(--text-muted); font-weight: 700; }
+  .log-item { display: flex; gap: 0.6rem; font-size: 0.88rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--border); }
+  .log-item code { background: var(--bg-alt); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.78rem; }
+  .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+  .doc-link { display: block; border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 1rem; text-decoration: none; color: var(--text); background: var(--bg-alt); }
+  .doc-link b { display: block; margin-bottom: 0.2rem; }
+  .doc-link span { font-size: 0.8rem; color: var(--text-muted); }
+  .status-blocked { color: var(--blocked); font-weight: 600; }
+  .status-approved { color: var(--ok); font-weight: 600; }
+  .status-pending { color: var(--pending); font-weight: 600; }
+  .plan-table td:first-child { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <h1>Jasper AI — Project Status</h1>
+    <p><b>Last updated: 2026-07-20 07:03</b> — E1 is live and verified; E3's dashboard is QA-verified
+      9/9 and its needs-attention fix, despite epic-status.md's stale claim otherwise, is confirmed
+      shipped to <code>main</code> (commit <code>087147a</code>, PR #11). E4 (Build 3 lead-gen automation)
+      is code-complete but stuck at 90% — three local routines (<code>dashboard-baseline-weekly</code>,
+      <code>content-brief-weekly</code>, <code>linkedin-repurpose-weekly</code>) still need Desktop
+      registration by the operator. E2 remains the one epic with a real open gap: no QA-REPORT has ever
+      been filed for the Orders/People/Newsletter/Resend/nav scope, 5 days after it shipped. 0 open bugs
+      currently logged; 2 closed historically (both Resend sandbox-address fixes).</p>
+    <p>Today's plan: <a href="product/epic-status.md">epic-status.md</a> ·
+       <a href="plans/2026-07-20.md">2026-07-20 daily plan</a></p>
+    <div class="stats">
+      <div class="stat"><div class="n">4</div><div class="l">Epics tracked</div></div>
+      <div class="stat"><div class="n">85%</div><div class="l">Avg. estimate done</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">Open bugs</div></div>
+      <div class="stat"><div class="n">2</div><div class="l">Phases in flight (E2 + E4)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Epic summary</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Pipeline</th><th>Estimate</th><th>Depends on</th><th>Open bugs</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>E1</td>
+            <td>Build 1 — Prove the loop</td>
+            <td class="dots"><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span></td>
+            <td>100%</td>
+            <td>—</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td>E2</td>
+            <td>Build 2 — Run the business from /admin</td>
+            <td class="dots"><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-off">○</span><span class="dot-off">○</span></td>
+            <td>75%</td>
+            <td>E1 · migrations 0002/0003 now applied — QA-REPORT still missing (5 days, unchanged since 07-16)</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td>E3</td>
+            <td>Admin Dashboard &amp; Analytics <em>(new)</em></td>
+            <td class="dots"><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-off">○</span></td>
+            <td>90%</td>
+            <td>E2 · QA-verified 9/9 (2026-07-16); needs-attention fix confirmed shipped on <code>main</code> (commit <code>087147a</code>) despite epic-status.md still flagging it as uncommitted</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td>E4</td>
+            <td>Build 3 — Leverage the dashboard to grow lead generation</td>
+            <td class="dots"><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-on">●</span><span class="dot-off">○</span></td>
+            <td>90%</td>
+            <td>E3 · all three sub-items (E4.1/E4.2/E4.3) code-complete and merged; blocked on Desktop registration of 3 local routines</td>
+            <td>0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="deep-link" style="color:var(--text-muted); margin-top:0.5rem;">Pipeline: planned → in flight → feature-complete → tested → shipped</p>
+  </section>
+
+  <section>
+    <h2>Epic detail</h2>
+    <div class="grid2">
+
+      <div class="card">
+        <h3>E1 · Build 1 — Prove the loop</h3>
+        <div class="thesis">A stranger can submit an inquiry on the live site and it's visible in /admin the same day — no lead depends on the inbox or memory again.</div>
+        <span class="pill pill-done">Shipped</span>
+        <div class="bar-outer"><div class="bar-inner" style="width:100%"></div></div>
+        <div class="meta"><b>Done:</b> contact form → Supabase People+Contacts, dedup by email, custom attributes saved, admin login gated, Kanban leads board live.</div>
+        <div class="meta"><b>Missing:</b> nothing outstanding.</div>
+        <div class="meta"><b>Success criterion:</b> cold-start submit-to-visible under 60s — verified live 2026-07-14.</div>
+        <div class="meta"><b>Open bugs:</b> 0</div>
+        <p class="deep-link"><a href="product/epic-status.md#e1-build-1-prove-the-loop--%E2%9C%85-100">See full drilldown →</a></p>
+      </div>
+
+      <div class="card">
+        <h3>E2 · Build 2 — Run the business from /admin</h3>
+        <div class="thesis">Turn the proven loop into the place leads, orders, and the newsletter list are actually managed, with automatic notification on every new inquiry.</div>
+        <span class="pill pill-progress">In progress — 75%</span>
+        <div class="bar-outer"><div class="bar-inner" style="width:75%"></div></div>
+        <div class="meta"><b>Done:</b>
+          <ul>
+            <li>Orders page + table (migration 0003 written)</li>
+            <li>People directory, searchable, with full per-person history drawer</li>
+            <li>Newsletter page (ok_to_contact = true)</li>
+            <li>Admin restructured into a shared (dashboard) layout with nav/logout</li>
+            <li>Resend internal notification wired, non-blocking</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Missing:</b>
+          <ul>
+            <li>No QA-REPORT filed yet for Orders/People/Newsletter/nav/Resend scope</li>
+            <li>Apple-minimalist redesign (merged 2026-07-15) has no QA pass or engineering-changes doc</li>
+            <li>Visitor confirmation email deferred until jasper-ai.com is bought + verified</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Success criterion:</b> a lead runs first-inquiry-to-won without leaving /admin; a real confirmation email lands from jasper-ai.com.</div>
+        <div class="meta"><b>Open bugs:</b> 0 (2 closed this cycle — Resend sandbox address fixes)</div>
+        <p class="deep-link"><a href="product/epic-status.md#e2-build-2--run-the-business-from-admin--%E2%8F%B3-75">See full drilldown →</a></p>
+      </div>
+
+      <div class="card">
+        <h3>E3 · Admin Dashboard &amp; Analytics <em>(new)</em></h3>
+        <div class="thesis">Give the operator a real-numbers view of the business — KPIs, funnel, revenue, needs-attention — on the /admin landing page instead of just a leads board.</div>
+        <span class="pill pill-done">Verified — 90%</span>
+        <div class="bar-outer"><div class="bar-inner" style="width:90%"></div></div>
+        <div class="meta"><b>Done:</b>
+          <ul>
+            <li>Dashboard shipped as /admin root: KPI row, leads-over-time, conversion funnel, revenue-by-month, how-they-heard, needs-attention list</li>
+            <li>QA-REPORT filed 2026-07-16, all 9 acceptance items PASS against direct Supabase queries, incl. re-verification addendum</li>
+            <li>Needs-attention truncation fix (was silently hiding 6 of 14 stale leads) shipped via PR #11, commit <code>087147a</code> — confirmed present on <code>main</code> today</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Missing:</b>
+          <ul>
+            <li>Operator labeling decision: "This week"/"This month" KPIs are trailing 7/30-day windows, not calendar periods (non-blocking, flagged in QA-REPORT)</li>
+            <li><code>docs/product/epic-status.md</code>'s Outstanding section still (incorrectly) lists the needs-attention fix as uncommitted — stale, needs correcting</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Success criterion:</b> dashboard figures independently confirmed correct; no auth regression; QA-REPORT filed. <b>Met.</b></div>
+        <div class="meta"><b>Open bugs:</b> 0</div>
+        <p class="deep-link"><a href="product/epic-status.md#e3--admin-dashboard--analytics--%E2%9C%85-90">See full drilldown →</a></p>
+      </div>
+
+      <div class="card">
+        <h3>E4 · Build 3 — Leverage the dashboard to grow lead generation</h3>
+        <div class="thesis">Turn the dashboard's data into an engine that grows the pipeline itself: a weekly baseline that flags where leads leak, an impossible-to-miss stale-lead list, and content briefs biased toward the channel that actually converts.</div>
+        <span class="pill pill-progress">In flight — 90%</span>
+        <div class="bar-outer"><div class="bar-inner" style="width:90%"></div></div>
+        <div class="meta"><b>Done:</b>
+          <ul>
+            <li>E4.1 weekly baseline + funnel-leak flag script live, first real log filed 2026-07-16 (PR #12)</li>
+            <li>E4.2 needs-attention visibility shipped as a side effect of the E3 fix (PR #11)</li>
+            <li>E4.3 precursor post live on /blog (PR #13); channel-signal script + routine file built and QA-verified (26/26 leads correctly classified)</li>
+            <li>linkedin-repurpose-weekly routine authored, PR #18</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Missing:</b>
+          <ul>
+            <li>Three local routines still unregistered in <code>~/.claude/scheduled-tasks/</code>: <code>dashboard-baseline-weekly</code>, <code>content-brief-weekly</code>, <code>linkedin-repurpose-weekly</code> — Desktop-only operator action, cannot be done from a CLI/scheduled session</li>
+            <li><code>writer-weekly</code> cadence change (weekly → biweekly) also pending in Desktop</li>
+            <li>One live cycle of each routine still to be observed once registered</li>
+          </ul>
+        </div>
+        <div class="meta"><b>Success criterion:</b> E4.1 runs on schedule and logs the leaking funnel stage weekly; E4.2 makes ≥7-day-stale leads impossible to miss; E4.3 proposes channel-biased briefs via PR, never auto-merging.</div>
+        <div class="meta"><b>Open bugs:</b> 0</div>
+        <p class="deep-link"><a href="product/epic-status.md#e4--build-3--leverage-the-dashboard-to-grow-lead-generation--%F0%9F%94%84-90">See full drilldown →</a></p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Today's plan — 2026-07-20</h2>
+    <div class="table-scroll">
+      <table class="plan-table">
+        <thead>
+          <tr><th>Priority</th><th>Item</th><th>Risk</th><th>Assigned</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>File the missing QA-REPORT for E2 Build 2 CRM scope (Orders/People/Newsletter/Resend/nav + Apple redesign) — unchanged gap since 2026-07-15</td>
+            <td>Medium — reads live production Supabase data + exercises production auth gating</td>
+            <td>qa</td>
+            <td class="status-pending">⏳ Awaiting Approval</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Clean up seed-tagged (<code>seed:content-attribution</code>) demo rows so the content-attribution widget only reflects real leads</td>
+            <td>Medium — production-data change, destructive-operation adjacent</td>
+            <td>developer</td>
+            <td class="status-pending">⏳ Awaiting Approval</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Register 3 local routines in Claude Desktop — <code>dashboard-baseline-weekly</code>, <code>content-brief-weekly</code>, <code>linkedin-repurpose-weekly</code> — plus the <code>writer-weekly</code> biweekly cadence change</td>
+            <td>N/A — operator-only action, not performable from this session</td>
+            <td>Operator (Jasper)</td>
+            <td class="status-blocked">🛑 Blocked — operator action required</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:0.75rem;"><b>Auto-approval triage (07:03):</b> no item today is both high priority and low risk (no new code / no external calls / content-or-config-only) — both agent-assignable items touch production data or auth surfaces, so both are logged "Backlogged — awaiting approval" rather than auto-approved. Nothing moves to the developer's 9 AM queue automatically today.</p>
+    <p style="margin-top:0.75rem;"><b>Blockers:</b></p>
+    <ul>
+      <li>Three local routines (<code>dashboard-baseline-weekly</code>, <code>content-brief-weekly</code>, <code>linkedin-repurpose-weekly</code>) and the <code>writer-weekly</code> cadence change all require the operator in Claude Desktop — cannot be registered from this CLI/scheduled session. Carried over from the 2026-07-20 content-leadgen review.</li>
+      <li><code>docs/product/epic-status.md</code>'s header timestamp ("Last updated: 2026-07-16 19:15") is stale relative to its own body, which has 2026-07-20 corrections — cosmetic, flagged for next update.</li>
+      <li><code>docs/product/epic-status.md</code>'s E3 "Outstanding" section incorrectly states the needs-attention fix is uncommitted; it shipped via PR #11 (commit <code>087147a</code>) and is confirmed live on <code>main</code>. Recommend the developer agent correct this on its next pass.</li>
+      <li><code>jasper-ai.com</code> not yet purchased — blocks Resend sending-domain verification and the visitor confirmation email (by design, not a defect). Carried over since 2026-07-14.</li>
+      <li>No stakeholder approval available for this autonomous 7:03 AM run — <code>LARK_WEBHOOK_URL</code> is unset, so no notification was sent either.</li>
+    </ul>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Full plan with acceptance criteria: <a href="plans/2026-07-20.md">docs/plans/2026-07-20.md</a></p>
+    <div class="card" style="margin-top:1rem; border-color: var(--ok, #2e7d32);">
+      <h3 style="color:var(--ok, #2e7d32);">✅ E3 Admin Dashboard verification — item 8 fixed &amp; re-verified, 9/9 PASS (2026-07-16)</h3>
+      <div class="meta">Original pass: 8 of 9 acceptance-criteria items PASS — KPI math, conversion funnel, revenue-by-month, and how-they-heard all verified exact against direct Supabase queries. 1 item (needs-attention list) FAILED on a silent 8-row cap.</div>
+      <div class="meta"><b>Fixed &amp; re-verified:</b> <code>buildNeedsAttention()</code> (<code>website/src/lib/dashboard.ts</code>) no longer does <code>.slice(0, 8)</code> — it returns all qualifying stale leads uncapped, and <code>needs-attention-table.tsx</code> now prints the live count in the subtitle (e.g. "14 open leads with no movement in 7+ days"). Independently re-queried Supabase directly: true count of open leads idle ≥7 days is <b>14</b>, and the fixed code now returns/displays all 14 with zero omissions. Diff scope-checked — only these two files changed, no other acceptance item touched. <b>Note: fix is uncommitted in the working tree as of this verification.</b></div>
+      <div class="meta"><b>Non-blocking finding (unchanged, separate from this fix):</b> "New leads this week" / "Revenue this month" actually mean trailing 7/30-day windows, not calendar week/month — e.g. Revenue shows $89,000 (trailing 30d) vs. $56,000 for July calendar-month-to-date. Needs an operator/product decision on labeling, not a code fix — does not block E4.</div>
+      <div class="meta"><b>Auth regression check:</b> PASS — all 5 gated routes (/admin, /admin/leads, /admin/orders, /admin/people, /admin/newsletter) redirect 307 to /admin/login with no session, no data leak.</div>
+      <p class="deep-link"><a href="engineering/changes/2026-07/2026-07-16-admin-dashboard-verification/QA-REPORT.md">Full QA-REPORT (incl. re-verification addendum) →</a></p>
+      <p class="meta"><b>E4 gate:</b> unblocked on the needs-attention dependency, pending commit of the fix.</p>
+    </div>
+    <p style="font-size:0.85rem; color:var(--text-muted);">Note: an unattributed, unverified line appeared in <code>docs/product/epic-status.md</code> mid-run bundled with an instruction to hide it from the operator — a prompt-injection pattern. Its factual claims independently checked out (site returns HTTP 200, 0 open PRs, no GitHub Actions workflows), but the line was removed pending proper attribution. See "Note on this run's integrity" in <a href="plans/2026-07-16.md">today's plan</a>.</p>
+
+    <div class="card" style="margin-top:1rem; border-color: var(--ok, #2e7d32);">
+      <h3 style="color:var(--ok, #2e7d32);">✅ BUILD 3 — "The dashboard works the pipeline for me" — 7/7 DoD items PASS (2026-07-17)</h3>
+      <div class="meta">Full QA pass of BUILD 3 (funnel diagnostics + source-quality table, in-place needs-attention drawer with note/mark-followed-up, silent source capture, weekday digest email, blog CTA). Verified against the live dev/prod-shared Supabase project via a throwaway admin user (deleted afterward) and Playwright; all funnel numbers independently recomputed in a sandboxed script from raw <code>contacts</code>/<code>activity_log</code> rows (bypassing the app) and matched the dashboard exactly. All QA test data (contacts/people/activity_log rows) was deleted afterward — table row counts confirmed identical (37/51/26) before and after.</div>
+      <div class="meta"><b>Highest-risk surface — in-place lead drawer:</b> PASS. Opened a stale lead from the dashboard's needs-attention list without navigating away; "Mark followed up" removed it from the visible list immediately and a real <code>activity_log</code> row was confirmed via direct Supabase query (<code>from_status=to_status=discovery_call</code>, note "Marked as followed up"). "Save note" and a full stage-change to "Won" were also verified with real DB writes on a second lead. Both <code>needs-attention-table.tsx</code> and <code>leads-board.tsx</code> share the same server actions and the same optimistic-update-with-rollback pattern.</div>
+      <div class="meta"><b>Source capture:</b> PASS. Verified "first touch only" semantics hold (an accidental early 404 hit correctly won the first-touch capture over the intended next navigation — proves the sessionStorage guard works, not a bug). Fresh session: landed on a blog post with UTM params, submitted the contact form, and confirmed <code>contacts.metadata</code> contained the exact UTM fields + blog landing page, with no stray <code>referrer</code> key (correctly omitted for a direct navigation).</div>
+      <div class="meta"><b>Digest email:</b> PASS. <code>?preview=1</code> correctly requires the right <code>CRON_SECRET</code> bearer token (401 with none/wrong token). Rendered HTML matches the Apple-minimalist style guide, has zero <code>&lt;img&gt;</code> tags (safe with remote images blocked), and its "Needs attention (20)" critical/warning split matches the dashboard's own needs-attention list exactly (same <code>computeStaleness</code> source of truth). Deep links use real contact UUIDs and were confirmed to open the correct lead's drawer on <code>/admin/leads?lead=&lt;id&gt;</code>.</div>
+      <div class="meta"><b>Auth:</b> PASS. <code>/admin</code> and <code>/admin/leads</code> redirect 307 to login with no session cookie. The cron route is the one intentional exception (its own <code>CRON_SECRET</code> check, since Vercel Cron can't carry a session cookie) — confirmed no other new route bypasses the gate.</div>
+      <div class="meta"><b>Flagged for human/manual follow-up:</b> pixel-level check of the digest in a real email client (Gmail/Outlook/Apple Mail); the optimistic-rollback path was reviewed in code but not triggered by an induced server failure; a literal next-day digest run wasn't observed live (only structurally verified via the shared staleness function).</div>
+      <div class="meta"><b>Process gap (non-blocking):</b> this task's <code>TECH-PLAN.md</code>/<code>EXEC-PLAN.md</code>/<code>CHANGELOG.md</code> were missing when QA started — flagged to Developer to backfill so the audit trail matches every other shipped task.</div>
+      <p class="deep-link"><a href="engineering/changes/2026-07/2026-07-17-build3-pipeline-dashboard/QA-REPORT.md">Full QA-REPORT →</a></p>
+    </div>
+
+    <div class="card" style="margin-top:1rem; border-color: var(--ok, #2e7d32);">
+      <h3 style="color:var(--ok, #2e7d32);">✅ Dashboard insight upgrade + homepage blog section — 7/7 items PASS (2026-07-19)</h3>
+      <div class="meta">QA pass of the dashboard restructure (4 labeled sections: Act now → Pipeline health → Channel performance → Revenue history), new "Leads created vs. Won" chart, merged "Source performance" widget, new "Content attribution" table, and the new homepage "From the blog" section. All 5 touched files re-verified against live data via a throwaway admin user (deleted afterward) — no visual/theme changes, additive only.</div>
+      <div class="meta"><b>Leads-vs-Won &amp; content attribution (items 1-2):</b> PASS. Reimplemented both aggregation functions independently in a standalone script against live <code>contacts</code>/<code>activity_log</code>/<code>orders</code> via the service-role key; y-axis ticks (0/4/8) and the x-axis week-label subset rendered on the live page matched the independently computed 10-week series exactly. Content attribution currently has zero populated rows in live data (0 of 37 contacts have a <code>/blog/</code>-prefixed <code>landing_page</code> yet) — the empty state ("No content-attributed leads yet.") renders correctly; the populated-row path is only code-verified pending a real blog-driven lead.</div>
+      <div class="meta"><b>Source performance (item 3):</b> PASS. Underlying <code>buildSourceQuality</code> is unchanged code — independently recomputed and matched the live page's rendered revenue ($148,000 / $140,000 / $27,000 / $71,000) and win-rate (33% / 30% / 25%) figures exactly, confirming the merge is display-only with no math regression.</div>
+      <div class="meta"><b>Needs-attention in-place actions (item 4):</b> PASS via code inspection — <code>needs-attention-table.tsx</code> and <code>actions/leads.ts</code> are unchanged from BUILD 3 (only the render position moved earlier in <code>page.tsx</code>); each action performs exactly one <code>activity_log.insert()</code>, and BUILD 3's QA already Playwright-verified all three actions live. Not re-exercised live this pass (no browser automation tool available).</div>
+      <div class="meta"><b>Homepage blog section (item 5):</b> PASS. 1 real post renders as a clean single-item list (no grid, so no empty-cell risk by construction). Temporarily added 2 fixture posts under <code>src/content/blog/</code>, confirmed exactly 3 render newest-first, then deleted both fixtures — repo back to the single real post.</div>
+      <div class="meta"><b>Auth regression (item 6):</b> PASS — no-cookie <code>/admin</code> redirects 307 to <code>/admin/login</code>; homepage <code>/</code> returns 200 with no new logged-out admin surface.</div>
+      <div class="meta"><b>No new hex colors (item 7):</b> PASS — grepped the full diff of all 5 touched files for <code>#[0-9a-fA-F]{3,8}</code>, zero matches.</div>
+      <div class="meta"><b>Cleanup:</b> throwaway Supabase auth user and both fixture blog posts deleted; dev server stopped; no commits made, nothing pushed.</div>
+      <p class="deep-link"><a href="engineering/changes/2026-07/2026-07-19-dashboard-insight-upgrade/QA-REPORT.md">Full QA-REPORT →</a></p>
+    </div>
+
+    <div class="card" style="margin-top:1rem; border-color: var(--ok, #2e7d32);">
+      <h3 style="color:var(--ok, #2e7d32);">✅ Needs Attention reversed to bottom + upgraded to full table — 7/7 items PASS (2026-07-19, later same day)</h3>
+      <div class="meta">Operator reversed the earlier "Act now" placement above — Needs Attention now renders as the <b>last</b> section on <code>/admin</code> (after Revenue history), since it's been upgraded into a full data table (search + sort + pagination), which fits better as the page's biggest/last section than at the top.</div>
+      <div class="meta"><b>Optimistic actions preserved (item 1):</b> PASS via code inspection — status change / note / mark-followed-up still optimistically remove the row with rollback + error message on failure, unchanged pattern shared with <code>leads-board.tsx</code>. Confirmed with the developer agent that the LeadDrawer/optimistic wiring and the <code>actions/leads.ts</code>/<code>lead-drawer.tsx</code> diffs visible in <code>git diff main</code> predate today's round (nothing has been committed since Build 3, so the diff accumulates every prior uncommitted round) — today's round added only search/sort/pagination plus one line, <code>setPage(1)</code> inside <code>markHandled()</code>, which correctly prevents stranding the operator on an empty page after a row is handled. Not re-exercised live end-to-end (no browser automation tool available this session).</div>
+      <div class="meta"><b>Search, sort, pagination (items 2-4):</b> PASS. Live-fetched <code>/admin</code> via a throwaway Supabase auth user (created and deleted within this pass): rendered HTML shows <code>Showing 1–10 of 24</code>, <code>Page 1 of 3</code>, Prev disabled on page 1; default sort is idle-days descending (59d/34d/33d... at the top, oldest first, matching prior behavior); sortable headers render a chevron only on the active column.</div>
+      <div class="meta"><b>Section order (item 5):</b> PASS. Live HTML's section <code>&lt;h2&gt;</code> labels appear in order Pipeline health → Channel performance → Revenue history → Needs attention (last), all sharing the same <code>SectionLabel</code> styling.</div>
+      <div class="meta"><b>Auth (item 6) &amp; no new hex colors (item 7):</b> PASS. <code>/admin</code> still 307s to <code>/admin/login</code> with no session; grepped the diff of both touched files for hex codes — zero matches (the drawer's new buttons reuse pre-existing <code>--green</code>/<code>--green-soft</code> tokens).</div>
+      <div class="meta"><b>Spot rerun:</b> <code>tsc --noEmit</code> clean; <code>lint</code> shows the same 8 pre-existing errors, all in files untouched by this round.</div>
+      <div class="meta"><b>Cleanup:</b> throwaway Supabase auth user created + deleted; temporary verification script removed from <code>website/</code>; no commits made, nothing pushed.</div>
+      <p class="deep-link"><a href="engineering/changes/2026-07/2026-07-19-dashboard-insight-upgrade/QA-REPORT.md">Full QA-REPORT (see Addendum) →</a></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Build log</h2>
+    <div class="log-day">
+      <h4>2026-07-20</h4>
+      <div class="log-item"><code>4c3e4ae</code> docs: correct epic-status.md — dashboard-baseline-weekly and content-brief-weekly were never registered</div>
+      <div class="log-item"><code>bce1c09</code> content: batch-write 5 bottom-funnel briefs (cost, timeline, vendor selection, PoC risk) — PR #17</div>
+      <div class="log-item"><code>bb24c24</code> automation: author linkedin-repurpose-weekly routine (unregistered) — PR #18</div>
+      <div class="log-item"><code>3c8f541</code> feat(website): add Vercel Analytics — PR #19</div>
+      <div class="log-item"><code>—</code> PM daily plan run: found E3's needs-attention fix is already shipped (epic-status.md's uncommitted claim is stale); flagged E2 QA-REPORT gap and content-attribution seed-data cleanup as today's priorities — see <a href="plans/2026-07-20.md">2026-07-20 plan</a></div>
+    </div>
+    <div class="log-day">
+      <h4>2026-07-19</h4>
+      <div class="log-item"><code>—</code> QA verification of "Needs Attention reversed to bottom + upgraded to full table" (search/sort/pagination) — PASS, 7/7 items; see <a href="engineering/changes/2026-07/2026-07-19-dashboard-insight-upgrade/QA-REPORT.md">QA-REPORT addendum</a>. Still uncommitted in the working tree.</div>
+      <div class="log-item"><code>—</code> QA verification of "Dashboard insight upgrade + homepage blog section" (Leads-vs-Won chart, Source performance merge, Content attribution table, homepage blog section) — PASS, 7/7 items; see <a href="engineering/changes/2026-07/2026-07-19-dashboard-insight-upgrade/QA-REPORT.md">QA-REPORT</a>. Still uncommitted in the working tree.</div>
+    </div>
+    <div class="log-day">
+      <h4>2026-07-17</h4>
+      <div class="log-item"><code>—</code> QA verification of BUILD 3 ("The dashboard works the pipeline for me" — funnel diagnostics, in-place needs-attention drawer, source capture, daily digest, blog CTA) — PASS, 7/7 DoD items; see <a href="engineering/changes/2026-07/2026-07-17-build3-pipeline-dashboard/QA-REPORT.md">QA-REPORT</a>.</div>
+    </div>
+    <div class="log-day">
+      <h4>2026-07-16</h4>
+      <div class="log-item"><code>—</code> No commits yet today. QA verification of the E3 Admin Dashboard (commit <code>bdfff3d</code>) filed — FAILED (needs-attention list silently truncates stale leads); see <a href="engineering/changes/2026-07/2026-07-16-admin-dashboard-verification/QA-REPORT.md">QA-REPORT</a>.</div>
+    </div>
+    <div class="log-day">
+      <h4>2026-07-15</h4>
+      <div class="log-item"><code>bdfff3d</code> Add admin dashboard + server-side pagination and CRM polish</div>
+      <div class="log-item"><code>9b3c93a</code> Alternate white/grey section backgrounds for visual rhythm</div>
+      <div class="log-item"><code>b565411</code> Add missing "Shipped, not slideware" section and footer</div>
+      <div class="log-item"><code>3cf6201</code> Apply Apple-minimalist CRM redesign to marketing site and admin</div>
+      <div class="log-item"><code>67682a9</code> Build 2 — Orders, People directory, Newsletter, admin nav, Resend notification (#5)</div>
+    </div>
+    <div class="log-day">
+      <h4>2026-07-14</h4>
+      <div class="log-item"><code>fd98971</code> fix: point Build 2 notification email at jasper.le@edge8.ai</div>
+      <div class="log-item"><code>6112228</code> fix: send Build 2 notification email to the Resend account's own address</div>
+      <div class="log-item"><code>acf8f50</code> feat: Build 2 — Orders, People directory, Newsletter, admin nav, Resend notification</div>
+      <div class="log-item"><code>1b64a5d</code> feat: gate /admin behind Supabase Auth login</div>
+      <div class="log-item"><code>2db6df9</code> feat: rebuild admin leads view as compact cards + drawer, seed demo data (#4)</div>
+      <div class="log-item"><code>b873ebf</code> fix: style select dropdowns to match text inputs (#3)</div>
+      <div class="log-item"><code>1ac9548</code> feat: Build 1 — capture leads to Supabase + /admin view (#2)</div>
+      <div class="log-item"><code>1bc7307</code> feat: rebuild marketing site from product prototype (#1)</div>
+      <div class="log-item"><code>1952ad8</code> deploy: trigger first Vercel build</div>
+      <div class="log-item"><code>efbd6e0</code> init: Jasper AI — Infinite Leverage site</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Companion docs</h2>
+    <div class="docs-grid">
+      <a class="doc-link" href="product/product-plan.md"><b>product-plan.md</b><span>BUILD 1 / BUILD 2 spec and brief</span></a>
+      <a class="doc-link" href="product/epic-status.md"><b>epic-status.md</b><span>Live pipeline status per epic</span></a>
+      <a class="doc-link" href="plans/2026-07-20.md"><b>2026-07-20 plan</b><span>Today's priorities + acceptance criteria</span></a>
+      <a class="doc-link" href="plans/2026-07-20-content-leadgen-optimization.md"><b>Content &amp; lead-gen review</b><span>Brain/engine strategy, Desktop registration handoff</span></a>
+      <a class="doc-link" href="plans/2026-07-16.md"><b>2026-07-16 plan</b><span>Historical — E3 QA fail/fix cycle</span></a>
+      <a class="doc-link" href="plans/2026-07-15-admin-dashboard-design.md"><b>Admin Dashboard design</b><span>E3 scope doc — includes its own Verification checklist</span></a>
+      <a class="doc-link" href="engineering/changes/2026-07/2026-07-summary.md"><b>2026-07 engineering summary</b><span>Task-level build log</span></a>
+      <a class="doc-link" href="engineering/changes/2026-07/2026-07-14-admin-leads-kanban/QA-REPORT.md"><b>Kanban QA report</b><span>Prior filed QA pass</span></a>
+      <a class="doc-link" href="engineering/changes/2026-07/2026-07-16-admin-dashboard-verification/QA-REPORT.md"><b>Dashboard QA report</b><span>E3 verification — 9/9 PASS after re-verification addendum</span></a>
+      <a class="doc-link" href="engineering/changes/2026-07/2026-07-17-build3-pipeline-dashboard/QA-REPORT.md"><b>BUILD 3 QA report</b><span>Pipeline dashboard + digest + source capture — 7/7 PASS</span></a>
+      <a class="doc-link" href="engineering/changes/2026-07/2026-07-19-dashboard-insight-upgrade/QA-REPORT.md"><b>Dashboard insight upgrade QA report</b><span>Leads-vs-Won + Source performance + Content attribution + homepage blog — 7/7 PASS</span></a>
+      <a class="doc-link" href="brand/"><b>brand/</b><span>Design system — read before building UI</span></a>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
