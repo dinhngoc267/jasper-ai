@@ -7,8 +7,13 @@ export const metadata: Metadata = {
     "Notes on scoping, building, and shipping custom AI systems — agents, RAG, knowledge graphs, and fine-tuned models.",
 };
 
-export default function BlogIndexPage() {
-  const posts = getAllPosts();
+// Render on every request — never at build time (there is no database
+// during `next build`). Same pattern as the admin leads/orders pages; also
+// means a new approval in /admin/content shows up without a redeploy.
+export const dynamic = "force-dynamic";
+
+export default async function BlogIndexPage() {
+  const posts = await getAllPosts();
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">

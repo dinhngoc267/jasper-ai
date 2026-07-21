@@ -88,14 +88,33 @@ jasper-ai/
 - Secrets live in `website/.env.local` (gitignored) and Vercel env vars — never in code
 - Email campaigns ALWAYS need human approval before sending
 
-## Content queue
-- Writer drafts to `content/topics/{slug}/brief.md` → `blog.md`
-- Designer adds visuals after copy approval
-- Web Publisher builds pages, commits locally — operator runs `git push`
+## Content queue (Supabase `posts` table — no git PRs)
+As of the 2026-07-20 content-pipeline-to-supabase change, content lives in the
+Supabase `posts` table and is reviewed in `/admin/content`, not via git files +
+PRs. A content item is a blog post: `title` + `body_markdown` (rendered by
+`website/src/lib/blog.ts`), plus blog settings (`description`, `tags`,
+`target_keyword`, `hero_image_url`, LinkedIn). Blog rendering is DB-driven, so
+publishing is a status flip with no deploy. Lifecycle is one gate:
+`pending_review → published` (`rejected` is terminal).
+- **writer-weekly** reads the channel signal and writes ONE COMPLETE post
+  (title + full body + SEO/tags) straight to `pending_review`
+  (`website/scripts/posts-cli.mjs create-post`). No separate brief step.
+- Operator reviews the finished post in `/admin/content` and clicks **Publish**
+  (→ `published`, live immediately; no `.jsx`, no image commit, no PR, no
+  deploy) or **Reject**.
+- **designer-weekly** (blocked on billing) will write `hero_image_url`.
+- **linkedin-repurpose-weekly** writes `linkedin_draft` + `linkedin_status =
+  pending_review` onto a published post (`posts-cli.mjs save-linkedin`).
+- Every write into a review state emails the operator a link to
+  `/admin/content/{id}` (`website/scripts/notify-review-needed.mjs`).
+- **Retired:** `content-brief-weekly` (folded into writer-weekly) and
+  `web-publisher-weekly` (publishing is the operator's click). See the
+  `*.RETIRED.md` notes in `website/scripts/`.
 
 ## Automated pipeline (registered in Phase 2, Prompt 10)
 - Weekdays 7am — PM daily plan · 6pm standup compile · 6:30pm EOD summary
-- Mon 9am Writer · Tue 9am Designer · Wed 9am Web Publisher · Thu 10am Email Marketer
+- Mon 9am Writer (full post) · Tue 9am Designer · Wed 9:15am LinkedIn repurpose
+  · Thu 10am Email Marketer (content-brief + Web Publisher retired)
 - Fri 5pm — PM weekly RAG report
 
 <!-- BEGIN: AGENT-DELEGATION (managed by infiniteleverage skills — do not delete this block) -->

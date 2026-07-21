@@ -4,12 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "../logout-button";
 
-const LINKS = [
-  { href: "/admin", label: "Dashboard", dot: "var(--ink)" },
-  { href: "/admin/leads", label: "Leads", dot: "var(--blue)" },
-  { href: "/admin/orders", label: "Orders", dot: "var(--green)" },
-  { href: "/admin/people", label: "People", dot: "var(--purple)" },
-  { href: "/admin/newsletter", label: "Newsletter", dot: "var(--amber)" },
+const NAV_SECTIONS: {
+  label: string | null;
+  links: { href: string; label: string; dot: string }[];
+}[] = [
+  {
+    label: null, // Overview sits at the top with no header, like a home row.
+    links: [{ href: "/admin", label: "Dashboard", dot: "var(--ink)" }],
+  },
+  {
+    label: "Pipeline",
+    links: [
+      { href: "/admin/leads", label: "Leads", dot: "var(--blue)" },
+      { href: "/admin/orders", label: "Orders", dot: "var(--green)" },
+      { href: "/admin/people", label: "People", dot: "var(--purple)" },
+      { href: "/admin/newsletter", label: "Newsletter", dot: "var(--amber)" },
+    ],
+  },
+  {
+    label: "Content",
+    links: [{ href: "/admin/content", label: "Content", dot: "var(--teal)" }],
+  },
 ];
 
 /**
@@ -32,30 +47,41 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-col gap-0.5 px-3 py-2">
-        {LINKS.map((link) => {
-          const isActive =
-            link.href === "/admin"
-              ? pathname === "/admin"
-              : pathname.startsWith(link.href);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-sm transition ${
-                isActive
-                  ? "bg-[var(--cream)] font-semibold text-[var(--ink)]"
-                  : "font-medium text-[var(--ink-soft)] hover:bg-[var(--cream)]/60"
-              }`}
-            >
-              <span
-                className="h-[7px] w-[7px] shrink-0 rounded-[2px]"
-                style={{ background: link.dot }}
-              />
-              {link.label}
-            </Link>
-          );
-        })}
+      <nav className="flex flex-col px-3 py-2">
+        {NAV_SECTIONS.map((section, i) => (
+          <div key={section.label ?? "overview"} className={i > 0 ? "mt-5" : ""}>
+            {section.label && (
+              <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-1)]">
+                {section.label}
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {section.links.map((link) => {
+                const isActive =
+                  link.href === "/admin"
+                    ? pathname === "/admin"
+                    : pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-sm transition ${
+                      isActive
+                        ? "bg-[var(--cream)] font-semibold text-[var(--ink)]"
+                        : "font-medium text-[var(--ink-soft)] hover:bg-[var(--cream)]/60"
+                    }`}
+                  >
+                    <span
+                      className="h-[7px] w-[7px] shrink-0 rounded-[2px]"
+                      style={{ background: link.dot }}
+                    />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="mt-auto border-t border-[var(--rule)] p-4">
